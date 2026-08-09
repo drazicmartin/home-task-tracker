@@ -94,9 +94,12 @@ To enable it:
    (pointing `PUBLIC_PB_URL` at the app instead of at PocketBase) is the most
    common cause of the login popup opening and immediately closing with no
    useful error.
-4. Set `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `AUTHENTIK_ISSUER`
-   (your Authentik instance's base URL, e.g. `https://auth.example.com`) in
-   `.env`.
+4. Set `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `AUTHENTIK_ISSUER` in
+   `.env`. `AUTHENTIK_ISSUER` accepts either your Authentik instance's bare
+   base URL (`https://auth.example.com`) or the full per-application
+   "Issuer URL" shown on the provider's page in Authentik
+   (`https://auth.example.com/application/o/<slug>/`) — both work, the
+   `/application/o/<slug>/` part is stripped automatically if present.
 5. Redeploy. Leave those variables unset to keep Authentik login disabled.
 
 If it still doesn't work, open the browser console right when the popup

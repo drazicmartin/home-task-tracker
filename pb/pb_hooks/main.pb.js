@@ -6,9 +6,13 @@
 // would only ever run once and get "stuck" on whatever was configured the
 // first time it applied).
 //
-// Set AUTHENTIK_CLIENT_ID / AUTHENTIK_CLIENT_SECRET / AUTHENTIK_ISSUER (the
-// base URL of your Authentik instance, e.g. https://auth.example.com) to
+// Set AUTHENTIK_CLIENT_ID / AUTHENTIK_CLIENT_SECRET / AUTHENTIK_ISSUER to
 // enable "Continue with Authentik" login. Leave them unset to disable it.
+// AUTHENTIK_ISSUER accepts either the bare instance URL
+// (https://auth.example.com) or the full per-application "Issuer URL" shown
+// in Authentik's own provider UI (https://auth.example.com/application/o/<slug>/)
+// — the trailing /application/o/<slug>/ is stripped below either way, since
+// the actual authorize/token/userinfo endpoints are shared (not per-slug).
 onBootstrap((e) => {
   e.next();
 
@@ -19,7 +23,10 @@ onBootstrap((e) => {
   const users = $app.findCollectionByNameOrId("users");
 
   if (clientId && clientSecret && issuer) {
-    const base = issuer.replace(/\/+$/, "");
+    const base = issuer
+      .trim()
+      .replace(/\/+$/, "")
+      .replace(/\/application\/o\/[^/]+$/, "");
     users.oauth2.enabled = true;
     users.oauth2.providers = [
       {
