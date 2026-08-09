@@ -82,14 +82,25 @@ PocketBase OAuth2 config from `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET`
 on the login/signup pages only appears when it's actually configured.
 
 To enable it:
-1. In Authentik, create an OAuth2/OpenID provider with redirect URI
-   `${PUBLIC_PB_URL}/api/oauth2-redirect`.
-2. Set `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `AUTHENTIK_ISSUER`
-   (your Authentik instance's base URL, e.g. `https://auth.example.com`) and
-   `PUBLIC_PB_URL` (the `pb` service's own public URL/domain — the browser
-   talks to PocketBase directly for this flow, so it needs to be reachable,
-   not just internal to the Docker network) in `.env`.
-3. Redeploy. Leave those variables unset to keep Authentik login disabled.
+1. Give the `pb` service its own public domain (in Coolify: a separate
+   domain from `sk`, e.g. `pb.example.com` next to `sk`'s `tasks.example.com`)
+   — the browser talks to PocketBase directly for this flow, so it needs to
+   be reachable on its own, not just internal to the Docker network.
+2. In Authentik, create an OAuth2/OpenID provider with redirect URI
+   `https://pb.example.com/api/oauth2-redirect` (that `pb` domain from step 1
+   + `/api/oauth2-redirect`, exactly).
+3. Set `PUBLIC_PB_URL` to that same `pb` domain from step 1 — **this is not
+   the same as `ORIGIN`**, which is the app's own domain. Mixing these two up
+   (pointing `PUBLIC_PB_URL` at the app instead of at PocketBase) is the most
+   common cause of the login popup opening and immediately closing with no
+   useful error.
+4. Set `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `AUTHENTIK_ISSUER`
+   (your Authentik instance's base URL, e.g. `https://auth.example.com`) in
+   `.env`.
+5. Redeploy. Leave those variables unset to keep Authentik login disabled.
+
+If it still doesn't work, open the browser console right when the popup
+closes — `sk/src/lib/OAuth2Button.svelte` logs the real error there.
 
 ## Contributors
 
