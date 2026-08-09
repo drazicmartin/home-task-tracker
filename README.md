@@ -1,45 +1,79 @@
 # Home-Task-Tracker (HTT)
 
-HTT, home task tracker is a gamified way of having all the housework done !
-It's is currently in developement.
+A gamified household task tracker: create a household for your couple,
+family, or roommates, add chores with a point value and a recurrence, and
+whoever completes one earns points. Multiple independent households can run
+on the same deployment — each self-serve signup either creates a new
+household or joins an existing one via an invite link.
 
-this project use the following stacks :
-- SvelteKit as frontend : https://kit.svelte.dev/
-- PocketBase as backend : https://pocketbase.io/
+Stack:
+- [SvelteKit](https://kit.svelte.dev/) (Svelte 5, Tailwind v4) — frontend
+- [PocketBase](https://pocketbase.io/) — backend, auth, and database, with
+  the schema managed as code in `pb/pb_migrations/`
 
-# Development 
-## Start Backend
+## Features
+
+- Task board with a recurrence-based "how overdue is this" visual, and a
+  completion dialog that splits points across whoever did it together
+- Per-household leaderboard (week / month / all-time) and activity history
+- Self-serve signup, household creation, and invite links to bring in the
+  rest of the household
+- Optional "Continue with Authentik" SSO login (see below)
+- French and English UI (French by default), switchable per-account
+
+## Development
+
+Start the backend:
 ```bash
 docker compose -f dev-docker-compose.yml up -d
 ```
 - REST API: http://0.0.0.0:3002/api/
 - Admin UI: http://0.0.0.0:3002/_/
 
-## Start front end
+Start the frontend:
 ```bash
 cd sk
-npm run start -- --open
+npm install
+npm run dev -- --open
 ```
 
-# Deploy
+The PocketBase schema lives entirely in `pb/pb_migrations/` (applied
+automatically on `pocketbase serve`) — there's nothing to configure by hand
+in the Admin UI beyond creating the first superuser, which
+`pb/docker-entrypoint.sh` already does from `PB_SUPERUSER_EMAIL` /
+`PB_SUPERUSER_PASSWORD`.
+
+## Deploy
 
 Copy `.env.example` to `.env` and fill in real values, then run:
 ```
 docker compose up -d
 ```
 
-There's no reverse proxy in this compose file — each service (`sk`, `pb`,
-`grafana`) just exposes its container port on the internal Docker network.
-Point your own reverse proxy / platform proxy at whichever service(s) you
-want reachable from the outside.
+There's no reverse proxy in this compose file — each service (`sk`, `pb`)
+just exposes its container port on the internal Docker network. Point your
+own reverse proxy / platform proxy at whichever service(s) you want reachable
+from the outside.
 
 This is set up for deploying on [Coolify](https://coolify.io/): import the
 repo, let it pick up `docker-compose.yml`, set the env vars from
 `.env.example` in the Coolify UI, and assign a domain to the `sk` service
-(and optionally `pb` / `grafana` on their own subdomains) from Coolify's
-per-service domain settings — no nginx or manual Traefik labels needed.
+(and `pb` too, on its own subdomain, if you want the PocketBase Admin UI or
+Authentik login reachable) from Coolify's per-service domain settings — no
+nginx or manual Traefik labels needed.
 
-# Single sign-on with Authentik (optional)
+### Upgrading an existing single-household deployment
+
+If you're upgrading from before households/multi-tenancy existed, keep the
+same `db-data` volume and just deploy the new images — `pb_migrations`
+includes a one-time backfill that creates a household from whatever tasks/
+records/users already exist and adds every existing user as a member, so
+history isn't lost. Take a PocketBase backup first regardless (Admin UI →
+Settings → Backups, or `docker cp` the volume out) as a rollback safety net.
+Existing accounts won't have a usable password from before (they were never
+actually logged into) — use PocketBase's forgot-password flow to set one.
+
+## Single sign-on with Authentik (optional)
 
 Users can log in with an Authentik account instead of (or alongside) an
 email/password. It's entirely opt-in: `pb/pb_hooks/main.pb.js` syncs the
@@ -57,17 +91,6 @@ To enable it:
    not just internal to the Docker network) in `.env`.
 3. Redeploy. Leave those variables unset to keep Authentik login disabled.
 
-# Grafana - query example
-
-```sql
-SELECT u.name, SUM(score), strftime('%s', r.created)*1000 as ts
-FROM records as r
-INNER JOIN users as u ON u.id = r.user
-WHERE ts >= $__from AND ts <= $__to
-GROUP BY u.name, ts
-ORDER BY ts DESC;
-```
-
-# Contributors
+## Contributors
 
 - [Drazic MARTIN](https://github.com/drazicmartin)

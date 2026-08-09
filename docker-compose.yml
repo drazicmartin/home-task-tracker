@@ -20,20 +20,6 @@ services:
     networks:
       - the-network
 
-  grafana:
-    image: grafana/grafana-oss
-    environment:
-      GF_INSTALL_PLUGINS: frser-sqlite-datasource
-      GF_SECURITY_ALLOW_EMBEDDING: true
-    volumes:
-      - grafana-storage:/var/lib/grafana
-      - db-data:/data_from_pb_service
-    expose:
-      - "3000"
-    restart: unless-stopped
-    networks:
-      - the-network
-
   sk:
     build: sk/
     image: htt-front:latest
@@ -63,7 +49,6 @@ services:
 
 volumes:
   db-data:
-  grafana-storage:
 
 networks:
   the-network:
