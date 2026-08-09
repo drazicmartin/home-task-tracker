@@ -117,5 +117,6 @@
 	"invite_create_one": "Créez-en un",
 	"invite_first": "d'abord.",
 	"generic_error": "Une erreur est survenue.",
-	"generic_saved": "Enregistré !"
+	"generic_saved": "Enregistré !",
+	"oauth_timeout": "La connexion a expiré. Contactez l'administrateur du site (problème de configuration serveur)."
 }

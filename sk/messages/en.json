@@ -117,5 +117,6 @@
 	"invite_create_one": "Create one",
 	"invite_first": "first.",
 	"generic_error": "Something went wrong.",
-	"generic_saved": "Saved!"
+	"generic_saved": "Saved!",
+	"oauth_timeout": "The login timed out. Contact the site administrator (server configuration issue)."
 }

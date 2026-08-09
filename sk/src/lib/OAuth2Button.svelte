@@ -10,6 +10,8 @@
 
 	let pending = $state(false);
 
+	class OAuth2TimeoutError extends Error {}
+
 	async function login(providerName: string) {
 		pending = true;
 		try {
@@ -25,7 +27,16 @@
 			}
 
 			const pb = createBrowserPb();
-			await pb.collection('users').authWithOAuth2({ provider: providerName });
+
+			// authWithOAuth2() opens a PocketBase Realtime (SSE) subscription
+			// *before* it navigates the popup to the provider — if that hangs
+			// (e.g. a reverse proxy gzip-compressing the SSE response, which
+			// breaks it outright), the popup just sits on about:blank forever
+			// with no error of its own. Time it out so the user gets feedback.
+			const timeout = new Promise((_, reject) => {
+				setTimeout(() => reject(new OAuth2TimeoutError()), 15000);
+			});
+			await Promise.race([pb.collection('users').authWithOAuth2({ provider: providerName }), timeout]);
 
 			const res = await fetch('/auth/oauth2-callback', {
 				method: 'POST',
@@ -38,8 +49,15 @@
 				invalidateAll: true
 			});
 		} catch (error) {
-			console.error('Authentik login failed:', error);
-			toast.error(m.oauth_login_failed());
+			if (error instanceof OAuth2TimeoutError) {
+				console.error(
+					'Authentik login timed out waiting for the popup to complete. This usually means PocketBase\'s realtime (SSE) connection is being buffered/compressed by a reverse proxy — see the README for the Coolify fix (disable compression for the "pb" service).'
+				);
+				toast.error(m.oauth_timeout());
+			} else {
+				console.error('Authentik login failed:', error);
+				toast.error(m.oauth_login_failed());
+			}
 		} finally {
 			pending = false;
 		}

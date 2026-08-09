@@ -102,6 +102,17 @@ To enable it:
 If it still doesn't work, open the browser console right when the popup
 closes — `sk/src/lib/OAuth2Button.svelte` logs the real error there.
 
+**Popup opens and just sits on a blank `about:blank` page:** this is a known
+PocketBase-behind-Coolify issue, not an app bug. `authWithOAuth2()` opens a
+PocketBase Realtime (Server-Sent Events) subscription *before* it ever
+navigates the popup to Authentik — and Coolify's Traefik proxy gzip-compresses
+responses by default, which breaks SSE outright (compressed streams can't be
+be delivered incrementally), so the subscription hangs forever and the popup
+never moves. Fix: disable compression/gzip for the `pb` service specifically
+in Coolify's proxy settings for that service's domain (some Coolify versions
+disable this automatically for PocketBase-shaped services; older ones need it
+turned off by hand). This only affects `pb`, not `sk`.
+
 ## Contributors
 
 - [Drazic MARTIN](https://github.com/drazicmartin)
