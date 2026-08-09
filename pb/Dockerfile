@@ -13,6 +13,9 @@ RUN unzip /tmp/pb.zip -d /pb/
 # schema-as-code: applied automatically on `serve` startup
 COPY ./pb_migrations /pb/pb_migrations
 
+# runs on every boot (e.g. syncing OAuth2 config from env vars) — see pb_hooks/main.pb.js
+COPY ./pb_hooks /pb/pb_hooks
+
 COPY ./docker-entrypoint.sh /pb/docker-entrypoint.sh
 RUN chmod +x /pb/docker-entrypoint.sh
 

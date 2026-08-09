@@ -5,10 +5,13 @@ function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/board';
 }
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (locals.user) {
 		redirect(303, safeNext(url.searchParams.get('next')));
 	}
+
+	const authMethods = await locals.pb.collection('users').listAuthMethods();
+	return { oauth2Providers: authMethods.oauth2.enabled ? authMethods.oauth2.providers : [] };
 };
 
 export const actions: Actions = {

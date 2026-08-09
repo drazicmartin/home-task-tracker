@@ -1,14 +1,17 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import type { ActionData } from './$types';
+	import OAuth2Button from '$lib/OAuth2Button.svelte';
+	import type { ActionData, PageData } from './$types';
 
-	let { form }: { form: ActionData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let next = $derived(page.url.searchParams.get('next'));
 </script>
 
 <main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
 	<h1 class="text-2xl font-bold text-stone-900">Créer un compte</h1>
+
+	<OAuth2Button providers={data.oauth2Providers} {next} />
 
 	<form method="post" action={next ? `?next=${encodeURIComponent(next)}` : undefined} use:enhance class="flex flex-col gap-4">
 		{#if form?.message}

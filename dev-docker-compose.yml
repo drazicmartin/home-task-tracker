@@ -2,9 +2,14 @@ services:
   pb:
     build:
       context: pb/
+    environment:
+      - AUTHENTIK_CLIENT_ID=${AUTHENTIK_CLIENT_ID}
+      - AUTHENTIK_CLIENT_SECRET=${AUTHENTIK_CLIENT_SECRET}
+      - AUTHENTIK_ISSUER=${AUTHENTIK_ISSUER}
     volumes:
      - db-data:/pb/pb_data
      - ./pb/pb_migrations:/pb/pb_migrations:ro
+     - ./pb/pb_hooks:/pb/pb_hooks:ro
     ports:
       - "3002:8090"
     working_dir: /app/pb
