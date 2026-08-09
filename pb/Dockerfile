@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-ARG PB_VERSION=0.21.3
+ARG PB_VERSION=0.39.10
 ARG PLATFORM
 
 RUN apk add --no-cache \
@@ -11,13 +11,15 @@ RUN apk add --no-cache \
 ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_${PLATFORM}.zip /tmp/pb.zip
 RUN unzip /tmp/pb.zip -d /pb/
 
-# uncomment to copy the local pb_migrations dir into the image
-# COPY ./pb_migrations /pb/pb_migrations
+# schema-as-code: applied automatically on `serve` startup
+COPY ./pb_migrations /pb/pb_migrations
 
-# uncomment to copy the local pb_hooks dir into the image
-# COPY ./pb_hooks /pb/pb_hooks
+COPY ./docker-entrypoint.sh /pb/docker-entrypoint.sh
+RUN chmod +x /pb/docker-entrypoint.sh
 
 EXPOSE 8090
+
+ENTRYPOINT ["/pb/docker-entrypoint.sh"]
 
 # start PocketBase
 CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090"]
