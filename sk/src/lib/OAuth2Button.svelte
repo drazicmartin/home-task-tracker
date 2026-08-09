@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { createBrowserPb } from '$lib/pocketbaseBrowser';
+	import { env } from '$env/dynamic/public';
 	import * as m from '$lib/paraglide/messages.js';
 
 	let { providers, next }: { providers: Array<{ name: string; displayName: string }>; next?: string | null } =
@@ -12,6 +13,17 @@
 	async function login(providerName: string) {
 		pending = true;
 		try {
+			if (!env.PUBLIC_PB_URL) {
+				// The single most common cause of "popup opens then immediately
+				// closes": the browser has no way to reach PocketBase directly
+				// (this flow can't go through the sk server), so listAuthMethods()
+				// fails before the popup ever navigates to Authentik.
+				console.error(
+					'PUBLIC_PB_URL is not set — the browser cannot reach PocketBase directly, which this login flow requires. Set it to the public URL of the "pb" service.'
+				);
+				throw new Error('PUBLIC_PB_URL is not configured');
+			}
+
 			const pb = createBrowserPb();
 			await pb.collection('users').authWithOAuth2({ provider: providerName });
 
@@ -25,7 +37,8 @@
 			await goto(next && next.startsWith('/') && !next.startsWith('//') ? next : '/board', {
 				invalidateAll: true
 			});
-		} catch {
+		} catch (error) {
+			console.error('Authentik login failed:', error);
 			toast.error(m.oauth_login_failed());
 		} finally {
 			pending = false;
