@@ -1,42 +1,30 @@
 services:
-  nginx:
-    build: nginx/
-    image: nginx:latest
-    depends_on:
-      - pb
-      - sk
-      - grafana
-    ports:
-        - 80:80
-    # restart: always
-    networks:
-      - the-network
-
   pb:
     build:
       context: pb/
-      args:
-        - PLATFORM=arm64 # amd64 or arm64 for raspberry pi
     image: pocket-base:latest
     volumes:
-     - db-data:/pb/pb_data
-    # ports: # MANAGED BY NGINX
-    #   - "3002:8090"
-    working_dir: /app/pb
+      - db-data:/pb/pb_data
+    environment:
+      - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL}
+      - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD}
+    expose:
+      - "8090"
+    restart: unless-stopped
     networks:
       - the-network
-  
+
   grafana:
     image: grafana/grafana-oss
     environment:
       GF_INSTALL_PLUGINS: frser-sqlite-datasource
-      GF_SERVER_ROOT_URL: http://%(domain)s/grafana/
       GF_SECURITY_ALLOW_EMBEDDING: true
-    # ports: # MANAGED BY NGINX
-    #  - "3001:3000"
     volumes:
-     - grafana-storage:/var/lib/grafana
-     - db-data:/data_from_pb_service
+      - grafana-storage:/var/lib/grafana
+      - db-data:/data_from_pb_service
+    expose:
+      - "3000"
+    restart: unless-stopped
     networks:
       - the-network
 
@@ -44,14 +32,22 @@ services:
     build: sk/
     image: htt-front:latest
     user: "node"
+    depends_on:
+      - pb
     environment:
       # Internal server error messages will not send stacktrace to the browser in production
       - NODE_ENV=production
       # Sets the timezone of the containers OS
       - TZ=Europe/Paris
+      # Internal, service-to-service PocketBase URL (not the public one)
+      - PB_URL=http://pb:8090
+      # Public URL this app is served at — required by SvelteKit for CSRF checks
+      - ORIGIN=${ORIGIN}
+      - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL}
+      - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD}
+    expose:
+      - "3000"
     restart: unless-stopped
-    # ports: # MANAGED BY NGINX
-    #   - 3000:3000
     networks:
       - the-network
 

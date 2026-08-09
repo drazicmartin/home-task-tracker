@@ -1,14 +1,13 @@
 FROM alpine:latest
 
 ARG PB_VERSION=0.39.10
-ARG PLATFORM
 
 RUN apk add --no-cache \
     unzip \
     ca-certificates
 
-# download and unzip PocketBase
-ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_${PLATFORM}.zip /tmp/pb.zip
+# download and unzip PocketBase (linux/amd64 — this targets a regular x86_64 server, not ARM)
+ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pb.zip
 RUN unzip /tmp/pb.zip -d /pb/
 
 # schema-as-code: applied automatically on `serve` startup

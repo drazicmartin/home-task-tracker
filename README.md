@@ -12,8 +12,8 @@ this project use the following stacks :
 ```bash
 docker compose -f dev-docker-compose.yml up -d
 ```
-- REST API: http://0.0.0.0:8080/api/
-- Admin UI: http://0.0.0.0:8080/_/
+- REST API: http://0.0.0.0:3002/api/
+- Admin UI: http://0.0.0.0:3002/_/
 
 ## Start front end
 ```bash
@@ -22,15 +22,22 @@ npm run start -- --open
 ```
 
 # Deploy
-Simply run
+
+Copy `.env.example` to `.env` and fill in real values, then run:
 ```
 docker compose up -d
 ```
 
-- I use a nginx server as a reverse proxy to be able to :
-  - `localhost/htt` --> `sk` front end app
-  - `localhost/pb` --> `pk` back end app
-  - `localhost/grafana` --> grafana app
+There's no reverse proxy in this compose file — each service (`sk`, `pb`,
+`grafana`) just exposes its container port on the internal Docker network.
+Point your own reverse proxy / platform proxy at whichever service(s) you
+want reachable from the outside.
+
+This is set up for deploying on [Coolify](https://coolify.io/): import the
+repo, let it pick up `docker-compose.yml`, set the env vars from
+`.env.example` in the Coolify UI, and assign a domain to the `sk` service
+(and optionally `pb` / `grafana` on their own subdomains) from Coolify's
+per-service domain settings — no nginx or manual Traefik labels needed.
 
 # Grafana - query example
 
