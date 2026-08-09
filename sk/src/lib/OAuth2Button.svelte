@@ -27,6 +27,15 @@
 			}
 
 			const pb = createBrowserPb();
+			// PocketBase's LocalAuthStore reads live from localStorage, and the
+			// SDK auto-attaches any existing token as the Authorization header
+			// on every request — including the OAuth2 exchange. If this browser
+			// still has a stale session (e.g. from testing email/password login
+			// earlier), that makes PocketBase try to link Authentik to whatever
+			// account that stale token belongs to instead of creating a fresh
+			// one, which fails as soon as the two don't match ("Failed to
+			// create record"). This flow should always start from a clean slate.
+			pb.authStore.clear();
 
 			// authWithOAuth2() opens a PocketBase Realtime (SSE) subscription
 			// *before* it navigates the popup to the provider — if that hangs
