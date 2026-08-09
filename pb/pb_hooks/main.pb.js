@@ -26,9 +26,15 @@ onBootstrap((e) => {
         name: "oidc",
         clientId: clientId,
         clientSecret: clientSecret,
-        authUrl: base + "/application/o/authorize/",
-        tokenUrl: base + "/application/o/token/",
-        userApiUrl: base + "/application/o/userinfo/",
+        // must match core.OAuth2ProviderConfig's exact JSON tags — the SDK
+        // navigates the login popup to `provider.authURL + redirectUri`
+        // directly, so a wrong/misspelled key here silently ends up with an
+        // empty authURL and the popup lands on a relative "?client_id=..."
+        // URL instead, which the browser resolves against whatever page
+        // opened it (looks like the app's own login page reappearing).
+        authURL: base + "/application/o/authorize/",
+        tokenURL: base + "/application/o/token/",
+        userInfoURL: base + "/application/o/userinfo/",
         displayName: "Authentik",
         pkce: null,
       },
