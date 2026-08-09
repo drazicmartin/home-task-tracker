@@ -33,7 +33,26 @@
 			</div>
 			<div class="flex items-center gap-3">
 				{#if data.activeHousehold}
-					<span class="text-sm text-stone-500">{data.activeHousehold.name}</span>
+					{#if data.households.length > 1}
+						<form method="post" action="/households/switch">
+							<select
+								name="householdId"
+								onchange={(e) => e.currentTarget.form?.requestSubmit()}
+								class="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
+							>
+								{#each data.households as household (household.id)}
+									<option value={household.id} selected={household.id === data.activeHousehold.id}>
+										{household.name}
+									</option>
+								{/each}
+							</select>
+						</form>
+					{:else}
+						<span class="text-sm text-stone-500">{data.activeHousehold.name}</span>
+					{/if}
+					<a href="/households/{data.activeHousehold.id}/settings" class="text-sm text-stone-600 hover:text-stone-900">
+						Paramètres
+					</a>
 				{/if}
 				<a href="/account" class="text-sm text-stone-600 hover:text-stone-900">Compte</a>
 				<form method="post" action="/logout">

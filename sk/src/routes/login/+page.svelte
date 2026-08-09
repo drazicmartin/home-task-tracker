@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
+	let next = $derived(page.url.searchParams.get('next'));
 </script>
 
 <main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
 	<h1 class="text-2xl font-bold text-stone-900">Se connecter</h1>
 
-	<form method="post" use:enhance class="flex flex-col gap-4">
+	<form method="post" action={next ? `?next=${encodeURIComponent(next)}` : undefined} use:enhance class="flex flex-col gap-4">
 		{#if form?.message}
 			<p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{form.message}</p>
 		{/if}
@@ -35,6 +37,12 @@
 	</form>
 
 	<p class="text-center text-sm text-stone-600">
-		Pas encore de compte ? <a href="/signup" class="font-medium text-stone-900 underline">Créer un compte</a>
+		Pas encore de compte ?
+		<a
+			href={next ? `/signup?next=${encodeURIComponent(next)}` : '/signup'}
+			class="font-medium text-stone-900 underline"
+		>
+			Créer un compte
+		</a>
 	</p>
 </main>

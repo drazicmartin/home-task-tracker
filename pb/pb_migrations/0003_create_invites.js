@@ -43,9 +43,11 @@ migrate((app) => {
         min: 1,
       },
       {
+        // not required: PocketBase's "required" check on number fields
+        // rejects a legitimate 0, and every invite starts at 0 uses
         name: "uses_count",
         type: "number",
-        required: true,
+        required: false,
         min: 0,
       },
       { name: "created", type: "autodate", onCreate: true, onUpdate: false },

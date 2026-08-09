@@ -14,6 +14,10 @@ let pbAdmin: PocketBase | null = null;
 export async function getAdminClient(): Promise<PocketBase> {
 	if (!pbAdmin) {
 		pbAdmin = new PocketBase(PB_URL);
+		// this client is a shared singleton across concurrent requests from
+		// different users — auto-cancellation would let one user's request
+		// abort another's
+		pbAdmin.autoCancellation(false);
 	}
 
 	if (!pbAdmin.authStore.isValid) {

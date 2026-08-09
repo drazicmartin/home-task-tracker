@@ -1,14 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
+function safeNext(next: string | null): string {
+	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/board';
+}
+
+export const load: PageServerLoad = ({ locals, url }) => {
 	if (locals.user) {
-		redirect(303, '/board');
+		redirect(303, safeNext(url.searchParams.get('next')));
 	}
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals }) => {
+	default: async ({ request, locals, url }) => {
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
 		const email = String(form.get('email') ?? '').trim();
@@ -38,6 +42,6 @@ export const actions: Actions = {
 			});
 		}
 
-		redirect(303, '/board');
+		redirect(303, safeNext(url.searchParams.get('next')));
 	}
 };

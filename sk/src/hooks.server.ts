@@ -19,6 +19,10 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 
 const handlePocketbase: Handle = async ({ event, resolve }) => {
 	event.locals.pb = new PocketBase(PB_URL);
+	// SvelteKit runs parent/child load functions concurrently on the same
+	// request-scoped client; the SDK's auto-cancellation would otherwise
+	// abort one load's request when another starts.
+	event.locals.pb.autoCancellation(false);
 	event.locals.pb.authStore.loadFromCookie(event.request.headers.get('cookie') || '');
 
 	try {
