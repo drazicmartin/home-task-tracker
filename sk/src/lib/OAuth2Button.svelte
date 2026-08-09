@@ -65,6 +65,13 @@
 				toast.error(m.oauth_timeout());
 			} else {
 				console.error('Authentik login failed:', error);
+				// ClientResponseError's per-field validation details live on
+				// .response (aliased as .data) — logging it separately as JSON
+				// avoids relying on expanding a collapsed console object tree.
+				const details = (error as { response?: unknown; data?: unknown })?.response ?? (error as { data?: unknown })?.data;
+				if (details) {
+					console.error('Error details:', JSON.stringify(details, null, 2));
+				}
 				toast.error(m.oauth_login_failed());
 			}
 		} finally {
