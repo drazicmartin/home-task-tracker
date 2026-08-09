@@ -1,19 +1,17 @@
-// See https://kit.svelte.dev/docs/types#app
-// for information about these interfaces
-
-import PocketBase from 'pocketbase';
+// See https://svelte.dev/docs/kit/types#app.d.ts for information about these interfaces
+import type PocketBase from 'pocketbase';
+import type { AuthRecord } from 'pocketbase';
 
 declare global {
 	namespace App {
+		interface Locals {
+			pb: PocketBase;
+			user: AuthRecord;
+		}
 		// interface Error {}
-		// interface Locals {}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
-		interface Locals {
-            pb: PocketBase,
-			user: PocketBase.authStore.model
-        }
 	}
 }
 

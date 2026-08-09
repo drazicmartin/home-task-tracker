@@ -1,0 +1,51 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import type { ActionData } from './$types';
+
+	let { form }: { form: ActionData } = $props();
+</script>
+
+<main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
+	<h1 class="text-2xl font-bold text-stone-900">Créer un compte</h1>
+
+	<form method="post" use:enhance class="flex flex-col gap-4">
+		{#if form?.message}
+			<p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{form.message}</p>
+		{/if}
+
+		<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
+			Nom
+			<input
+				name="name"
+				type="text"
+				required
+				value={form?.name ?? ''}
+				class="rounded-lg border border-stone-300 px-3 py-2"
+			/>
+		</label>
+
+		<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
+			E-mail
+			<input
+				name="email"
+				type="email"
+				required
+				value={form?.email ?? ''}
+				class="rounded-lg border border-stone-300 px-3 py-2"
+			/>
+		</label>
+
+		<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
+			Mot de passe
+			<input name="password" type="password" required minlength="8" class="rounded-lg border border-stone-300 px-3 py-2" />
+		</label>
+
+		<button type="submit" class="rounded-full bg-stone-900 px-6 py-3 font-medium text-white hover:bg-stone-700">
+			Créer mon compte
+		</button>
+	</form>
+
+	<p class="text-center text-sm text-stone-600">
+		Déjà un compte ? <a href="/login" class="font-medium text-stone-900 underline">Se connecter</a>
+	</p>
+</main>

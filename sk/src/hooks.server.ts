@@ -1,37 +1,44 @@
-// src/hooks.server.js
+import type { Handle } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
 import PocketBase from 'pocketbase';
-import fs from "fs";
+import { env } from '$env/dynamic/private';
+import { getTextDirection } from '$lib/paraglide/runtime';
+import { paraglideMiddleware } from '$lib/paraglide/server';
 
-// detect if we're running inside docker and set the backend accordingly
-const pocketbase_url = fs.existsSync("/.dockerenv")
-  ? "http://pb:8090" // docker-to-docker
-  : "http://localhost:3002"; // localhost-to-localhost
+const PB_URL = env.PB_URL || 'http://127.0.0.1:8090';
 
-const grafana_url = fs.existsSync("/.dockerenv")
-  ? "http://grafana:3000" // docker-to-docker
-  : "http://localhost:3001"; // localhost-to-localhost
+const handleParaglide: Handle = ({ event, resolve }) =>
+	paraglideMiddleware(event.request, ({ request, locale }) => {
+		event.request = request;
 
+		return resolve(event, {
+			transformPageChunk: ({ html }) =>
+				html.replace('%paraglide.lang%', locale).replace('%paraglide.dir%', getTextDirection(locale))
+		});
+	});
 
-/** @type {import('@sveltejs/kit').Handle} */
-export async function handle({ event, resolve }) {
-  event.locals.pb = new PocketBase(pocketbase_url);
-  
-  // load the store data from the request cookie string
-  event.locals.pb.authStore.loadFromCookie(event.request.headers.get('cookie') || '');
+const handlePocketbase: Handle = async ({ event, resolve }) => {
+	event.locals.pb = new PocketBase(PB_URL);
+	event.locals.pb.authStore.loadFromCookie(event.request.headers.get('cookie') || '');
 
-  try {
-      // get an up-to-date auth store state by verifying and refreshing the loaded auth model (if any)
-      event.locals.pb.authStore.isValid && await event.locals.pb.collection('users').authRefresh();
-  } catch (_) {
-      // clear the auth store on failed refresh
-      event.locals.pb.authStore.clear();
-  }
+	try {
+		if (event.locals.pb.authStore.isValid) {
+			await event.locals.pb.collection('users').authRefresh();
+		}
+	} catch {
+		event.locals.pb.authStore.clear();
+	}
 
-  const response = await resolve(event);
-  event.locals.user = event.locals.pb.authStore.model
+	event.locals.user = event.locals.pb.authStore.record;
 
-  // send back the default 'pb_auth' cookie to the client with the latest store state
-  response.headers.append('set-cookie', event.locals.pb.authStore.exportToCookie());
+	const response = await resolve(event);
 
-  return response;
-}
+	response.headers.append(
+		'set-cookie',
+		event.locals.pb.authStore.exportToCookie({ httpOnly: true, secure: !event.url.hostname.includes('localhost') })
+	);
+
+	return response;
+};
+
+export const handle: Handle = sequence(handleParaglide, handlePocketbase);
