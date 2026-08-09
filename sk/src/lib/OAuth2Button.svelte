@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { createBrowserPb } from '$lib/pocketbaseBrowser';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let { providers, next }: { providers: Array<{ name: string; displayName: string }>; next?: string | null } =
 		$props();
@@ -25,7 +26,7 @@
 				invalidateAll: true
 			});
 		} catch {
-			toast.error('Connexion impossible. Réessayez.');
+			toast.error(m.oauth_login_failed());
 		} finally {
 			pending = false;
 		}
@@ -41,13 +42,13 @@
 				onclick={() => login(provider.name)}
 				class="rounded-full border border-stone-300 px-6 py-3 font-medium text-stone-900 transition hover:bg-stone-100 disabled:opacity-50"
 			>
-				Continuer avec {provider.displayName}
+				{m.oauth_continue_with({ provider: provider.displayName })}
 			</button>
 		{/each}
 	</div>
 	<div class="flex items-center gap-3 text-xs text-stone-400">
 		<span class="h-px flex-1 bg-stone-200"></span>
-		ou
+		{m.oauth_or()}
 		<span class="h-px flex-1 bg-stone-200"></span>
 	</div>
 {/if}

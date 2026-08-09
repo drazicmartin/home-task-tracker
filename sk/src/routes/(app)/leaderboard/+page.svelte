@@ -1,13 +1,14 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	const windows = [
-		{ value: 'week', label: 'Cette semaine' },
-		{ value: 'month', label: 'Ce mois' },
-		{ value: 'all', label: 'Depuis toujours' }
-	];
+	const windows = $derived([
+		{ value: 'week', label: m.leaderboard_week() },
+		{ value: 'month', label: m.leaderboard_month() },
+		{ value: 'all', label: m.leaderboard_all() }
+	]);
 
 	let maxTotal = $derived(Math.max(1, ...data.ranking.map((r) => r.total)));
 	const medals = ['🥇', '🥈', '🥉'];
@@ -15,7 +16,7 @@
 
 <div class="flex flex-col gap-4">
 	<div class="flex items-center justify-between">
-		<h1 class="text-xl font-semibold text-stone-900">Classement</h1>
+		<h1 class="text-xl font-semibold text-stone-900">{m.leaderboard_title()}</h1>
 		<div class="flex gap-1">
 			{#each windows as w (w.value)}
 				<a
@@ -32,7 +33,7 @@
 
 	{#if data.ranking.length === 0}
 		<div class="rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center text-stone-500">
-			Aucun point marqué sur cette période.
+			{m.leaderboard_empty()}
 		</div>
 	{:else}
 		<ol class="flex flex-col gap-3">
@@ -43,7 +44,7 @@
 							<span class="w-6 text-center">{medals[i] ?? i + 1}</span>
 							{entry.name}
 						</span>
-						<span class="font-bold text-stone-900">{entry.total} pts</span>
+						<span class="font-bold text-stone-900">{m.board_pts({ score: entry.total })}</span>
 					</div>
 					<div class="mt-2 h-2 overflow-hidden rounded-full bg-stone-100">
 						<div

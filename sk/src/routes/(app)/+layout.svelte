@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import * as m from '$lib/paraglide/messages.js';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
 
-	const links = [
-		{ href: '/board', label: 'Tâches' },
-		{ href: '/leaderboard', label: 'Classement' },
-		{ href: '/history', label: 'Historique' }
-	];
+	const links = $derived([
+		{ href: '/board', label: m.nav_tasks() },
+		{ href: '/leaderboard', label: m.nav_leaderboard() },
+		{ href: '/history', label: m.nav_history() }
+	]);
 </script>
 
 <div class="min-h-screen bg-stone-50">
@@ -51,12 +52,12 @@
 						<span class="text-sm text-stone-500">{data.activeHousehold.name}</span>
 					{/if}
 					<a href="/households/{data.activeHousehold.id}/settings" class="text-sm text-stone-600 hover:text-stone-900">
-						Paramètres
+						{m.nav_settings()}
 					</a>
 				{/if}
-				<a href="/account" class="text-sm text-stone-600 hover:text-stone-900">Compte</a>
+				<a href="/account" class="text-sm text-stone-600 hover:text-stone-900">{m.nav_account()}</a>
 				<form method="post" action="/logout">
-					<button type="submit" class="text-sm text-stone-600 hover:text-stone-900">Déconnexion</button>
+					<button type="submit" class="text-sm text-stone-600 hover:text-stone-900">{m.nav_logout()}</button>
 				</form>
 			</div>
 		</nav>

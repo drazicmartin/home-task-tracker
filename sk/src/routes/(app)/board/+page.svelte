@@ -4,6 +4,7 @@
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
 	import { urgencyGradient } from '$lib/scoring';
+	import * as m from '$lib/paraglide/messages.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -35,9 +36,9 @@
 		return async ({ result, update }) => {
 			const data = result.type === 'success' || result.type === 'failure' ? (result.data as ActionData) : undefined;
 			if (result.type === 'failure' || result.type === 'error') {
-				toast.error(data?.message ?? 'Une erreur est survenue.');
+				toast.error(data?.message ?? m.generic_error());
 			} else {
-				toast.success(data?.message ?? 'Enregistré !');
+				toast.success(data?.message ?? m.generic_saved());
 				dialogOpen = false;
 			}
 			await update();
@@ -47,18 +48,18 @@
 
 <div class="flex flex-col gap-4">
 	<div class="flex items-center justify-between">
-		<h1 class="text-xl font-semibold text-stone-900">Tâches</h1>
+		<h1 class="text-xl font-semibold text-stone-900">{m.board_title()}</h1>
 		<a
 			href="/board/tasks/new"
 			class="rounded-full border border-stone-300 px-4 py-1.5 text-sm font-medium hover:bg-stone-100"
 		>
-			+ Nouvelle tâche
+			{m.board_new_task()}
 		</a>
 	</div>
 
 	{#if data.tasks.length === 0}
 		<div class="rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center text-stone-500">
-			Aucune tâche pour l'instant. Créez-en une pour commencer à gagner des points !
+			{m.board_empty()}
 		</div>
 	{:else}
 		<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -67,7 +68,7 @@
 					<a
 						href="/board/tasks/{task.id}/edit"
 						class="absolute top-2 right-2 z-10 rounded-full bg-black/20 px-2 py-1 text-xs text-white backdrop-blur hover:bg-black/40"
-						aria-label="Modifier {task.name}"
+						aria-label={m.board_edit_aria({ name: task.name })}
 					>
 						✎
 					</a>
@@ -78,7 +79,7 @@
 						class="flex h-32 w-full flex-col justify-between rounded-2xl p-4 text-left text-white shadow-sm transition hover:brightness-110"
 					>
 						<span class="text-lg leading-tight font-semibold break-words">{task.name}</span>
-						<span class="text-2xl font-bold">{task.score} pts</span>
+						<span class="text-2xl font-bold">{m.board_pts({ score: task.score })}</span>
 					</button>
 				</div>
 			{/each}
@@ -94,7 +95,7 @@
 		>
 			{#if selectedTask}
 				<Dialog.Title class="text-lg font-semibold text-stone-900">
-					Qui a fait « {selectedTask.name} » ?
+					{m.board_dialog_title({ name: selectedTask.name })}
 				</Dialog.Title>
 
 				<form
@@ -132,7 +133,7 @@
 						>
 							-1
 						</button>
-						<span class="text-xl font-bold text-stone-900">{score} pts</span>
+						<span class="text-xl font-bold text-stone-900">{m.board_pts({ score })}</span>
 						<button
 							type="button"
 							onclick={() => adjustScore(1)}
@@ -147,14 +148,14 @@
 							type="button"
 							class="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100"
 						>
-							Annuler
+							{m.board_cancel()}
 						</Dialog.Close>
 						<button
 							type="submit"
 							disabled={selectedUserIds.length === 0}
 							class="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-40"
 						>
-							Valider
+							{m.board_validate()}
 						</button>
 					</div>
 				</form>
