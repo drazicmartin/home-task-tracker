@@ -1,5 +1,6 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"nav_menu": "Menu",
 	"nav_tasks": "Tâches",
 	"nav_leaderboard": "Classement",
 	"nav_history": "Historique",

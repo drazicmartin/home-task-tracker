@@ -67,7 +67,7 @@
 				<div class="relative">
 					<a
 						href="/board/tasks/{task.id}/edit"
-						class="absolute top-2 right-2 z-10 rounded-full bg-black/20 px-2 py-1 text-xs text-white backdrop-blur hover:bg-black/40"
+						class="absolute top-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/20 text-sm text-white backdrop-blur hover:bg-black/40"
 						aria-label={m.board_edit_aria({ name: task.name })}
 					>
 						✎
