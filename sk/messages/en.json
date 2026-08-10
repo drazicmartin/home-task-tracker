@@ -1,5 +1,6 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"nav_menu": "Menu",
 	"nav_tasks": "Tasks",
 	"nav_leaderboard": "Leaderboard",
 	"nav_history": "History",
