@@ -2,33 +2,28 @@ services:
   pb:
     build:
       context: pb/
-      args:
-        - PLATFORM=arm64 # amd64 or arm64 for raspberry pi
+    environment:
+      - AUTHENTIK_CLIENT_ID=${AUTHENTIK_CLIENT_ID}
+      - AUTHENTIK_CLIENT_SECRET=${AUTHENTIK_CLIENT_SECRET}
+      - AUTHENTIK_ISSUER=${AUTHENTIK_ISSUER}
     volumes:
      - db-data:/pb/pb_data
-    ports: # MANAGED BY NGINX
+     - ./pb/pb_migrations:/pb/pb_migrations:ro
+     - ./pb/pb_hooks:/pb/pb_hooks:ro
+    ports:
       - "3002:8090"
     working_dir: /app/pb
-    networks:
-      - the-network
-  
-  grafana:
-    image: grafana/grafana-oss
-    environment:
-      GF_INSTALL_PLUGINS: frser-sqlite-datasource
-      # GF_SERVER_ROOT_URL: http://%(domain)s/grafana/
-      GF_SECURITY_ALLOW_EMBEDDING: true
-    ports: # MANAGED BY NGINX
-     - "3001:3000"
-    volumes:
-     - grafana-storage:/var/lib/grafana
-     - db-data:/data_from_pb_service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8090/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - the-network
 
 volumes:
   db-data:
-  grafana-storage:
 
 networks:
   the-network:

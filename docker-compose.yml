@@ -1,42 +1,28 @@
 services:
-  nginx:
-    build: nginx/
-    image: nginx:latest
-    depends_on:
-      - pb
-      - sk
-      - grafana
-    ports:
-        - 80:80
-    # restart: always
-    networks:
-      - the-network
-
   pb:
     build:
       context: pb/
-      args:
-        - PLATFORM=arm64 # amd64 or arm64 for raspberry pi
     image: pocket-base:latest
     volumes:
-     - db-data:/pb/pb_data
-    # ports: # MANAGED BY NGINX
-    #   - "3002:8090"
-    working_dir: /app/pb
-    networks:
-      - the-network
-  
-  grafana:
-    image: grafana/grafana-oss
+      - db-data:/pb/pb_data
     environment:
-      GF_INSTALL_PLUGINS: frser-sqlite-datasource
-      GF_SERVER_ROOT_URL: http://%(domain)s/grafana/
-      GF_SECURITY_ALLOW_EMBEDDING: true
-    # ports: # MANAGED BY NGINX
-    #  - "3001:3000"
-    volumes:
-     - grafana-storage:/var/lib/grafana
-     - db-data:/data_from_pb_service
+      - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL}
+      - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD}
+      # Optional: "Continue with Authentik" login — leave unset to disable it.
+      # See pb/pb_hooks/main.pb.js. AUTHENTIK_ISSUER is your Authentik instance's
+      # base URL (e.g. https://auth.example.com), not the app-specific slug URL.
+      - AUTHENTIK_CLIENT_ID=${AUTHENTIK_CLIENT_ID}
+      - AUTHENTIK_CLIENT_SECRET=${AUTHENTIK_CLIENT_SECRET}
+      - AUTHENTIK_ISSUER=${AUTHENTIK_ISSUER}
+    expose:
+      - "8090"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8090/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - the-network
 
@@ -44,20 +30,38 @@ services:
     build: sk/
     image: htt-front:latest
     user: "node"
+    depends_on:
+      pb:
+        condition: service_healthy
     environment:
       # Internal server error messages will not send stacktrace to the browser in production
       - NODE_ENV=production
       # Sets the timezone of the containers OS
       - TZ=Europe/Paris
+      # Internal, service-to-service PocketBase URL (not the public one)
+      - PB_URL=http://pb:8090
+      # Public URL of the "pb" service, reachable from the user's browser —
+      # needed for the Authentik OAuth2 popup flow. Give "pb" its own domain
+      # in Coolify and put it here (e.g. https://pb.example.com).
+      - PUBLIC_PB_URL=${PUBLIC_PB_URL}
+      # Public URL this app is served at — required by SvelteKit for CSRF checks
+      - ORIGIN=${ORIGIN}
+      - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL}
+      - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD}
+    expose:
+      - "3000"
     restart: unless-stopped
-    # ports: # MANAGED BY NGINX
-    #   - 3000:3000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - the-network
 
 volumes:
   db-data:
-  grafana-storage:
 
 networks:
   the-network:
