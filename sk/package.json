@@ -29,6 +29,7 @@
 	"dependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
 		"bits-ui": "^2.18.1",
+		"layerchart": "^2.1.0",
 		"nanoid": "^6.0.1",
 		"pocketbase": "^0.27.1",
 		"svelte-sonner": "^1.1.1"
