@@ -100,10 +100,30 @@ To enable it:
    "Issuer URL" shown on the provider's page in Authentik
    (`https://auth.example.com/application/o/<slug>/`) — both work, the
    `/application/o/<slug>/` part is stripped automatically if present.
-5. Redeploy. Leave those variables unset to keep Authentik login disabled.
+5. On Authentik 2025.10+: its default "email" scope mapping always sends
+   `email_verified: false`, regardless of the user's actual verified status
+   in Authentik — a deliberate security change, since Authentik has no single
+   authoritative source for that. PocketBase requires `email_verified: true`
+   to accept the email claim at all, so without this step every login fails
+   at account creation with "email: Cannot be blank" even though Authentik
+   clearly sent one. Fix: **Customization → Property Mappings → Create →
+   Scope Mapping**, name it e.g. `Custom OAuth Mapping: OpenID 'email'
+   (verified)`, scope name `email`, expression:
+   ```python
+   return {
+       "email": request.user.email,
+       "email_verified": True,
+   }
+   ```
+   then on the provider (**Applications → Providers → your provider → edit →
+   Advanced protocol settings → Scope Mappings**) swap out the default email
+   mapping for this custom one (having both selected gives ambiguous merged
+   output — remove the default, don't just add to it).
+6. Redeploy. Leave those variables unset to keep Authentik login disabled.
 
 If it still doesn't work, open the browser console right when the popup
-closes — `sk/src/lib/OAuth2Button.svelte` logs the real error there.
+closes — `sk/src/lib/OAuth2Button.svelte` logs the real error there, including
+the full validation error details for any 400 from PocketBase.
 
 **Popup opens and just sits on a blank `about:blank` page:** this is a known
 PocketBase-behind-Coolify issue, not an app bug. `authWithOAuth2()` opens a
