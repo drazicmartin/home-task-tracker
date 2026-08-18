@@ -10,7 +10,7 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<div class="flex items-center justify-between">
+	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 		<h1 class="text-xl font-semibold text-stone-900">{m.leaderboard_title()}</h1>
 		<WindowToggle current={data.window} />
 	</div>
