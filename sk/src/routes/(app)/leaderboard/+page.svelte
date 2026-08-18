@@ -1,14 +1,9 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import WindowToggle from '$lib/WindowToggle.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	const windows = $derived([
-		{ value: 'week', label: m.leaderboard_week() },
-		{ value: 'month', label: m.leaderboard_month() },
-		{ value: 'all', label: m.leaderboard_all() }
-	]);
 
 	let maxTotal = $derived(Math.max(1, ...data.ranking.map((r) => r.total)));
 	const medals = ['🥇', '🥈', '🥉'];
@@ -17,18 +12,7 @@
 <div class="flex flex-col gap-4">
 	<div class="flex items-center justify-between">
 		<h1 class="text-xl font-semibold text-stone-900">{m.leaderboard_title()}</h1>
-		<div class="flex gap-1">
-			{#each windows as w (w.value)}
-				<a
-					href="?window={w.value}"
-					class="rounded-full px-3 py-1.5 text-sm font-medium transition {data.window === w.value
-						? 'bg-stone-900 text-white'
-						: 'text-stone-600 hover:bg-stone-100'}"
-				>
-					{w.label}
-				</a>
-			{/each}
-		</div>
+		<WindowToggle current={data.window} />
 	</div>
 
 	{#if data.ranking.length === 0}

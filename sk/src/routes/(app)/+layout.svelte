@@ -9,6 +9,7 @@
 
 	const links = $derived([
 		{ href: '/board', label: m.nav_tasks() },
+		{ href: '/dashboard', label: m.nav_dashboard() },
 		{ href: '/leaderboard', label: m.nav_leaderboard() },
 		{ href: '/history', label: m.nav_history() }
 	]);

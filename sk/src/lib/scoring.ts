@@ -2,6 +2,46 @@ import type PocketBase from 'pocketbase';
 
 const DAY_SECONDS = 24 * 60 * 60;
 
+export type Window = 'week' | 'month' | 'all';
+
+/** ISO timestamp for the start of a window, or undefined for 'all' (no lower bound). */
+export function windowSince(window: Window): string | undefined {
+	if (window === 'all') return undefined;
+	const days = window === 'week' ? 7 : 30;
+	return new Date(Date.now() - days * DAY_SECONDS * 1000).toISOString();
+}
+
+/** Fetches the records for a household within a time window, with the completing user expanded. */
+export async function getHouseholdRecords(pb: PocketBase, householdId: string, window: Window) {
+	const filterParams: Record<string, unknown> = { h: householdId };
+	let filter = 'household = {:h}';
+	const since = windowSince(window);
+	if (since) {
+		filterParams.since = since;
+		filter += ' && created >= {:since}';
+	}
+
+	return pb.collection('records').getFullList({
+		filter: pb.filter(filter, filterParams),
+		expand: 'user'
+	});
+}
+
+export type UserTotal = { id: string; name: string; total: number };
+
+/** Aggregates records into per-user point totals, ranked highest first. */
+export function getUserTotals(records: Awaited<ReturnType<typeof getHouseholdRecords>>): UserTotal[] {
+	const totals = new Map<string, UserTotal>();
+	for (const record of records) {
+		const user = record.expand?.user;
+		if (!user) continue;
+		const entry = totals.get(user.id) ?? { id: user.id, name: user.name || user.email, total: 0 };
+		entry.total += record.score;
+		totals.set(user.id, entry);
+	}
+	return [...totals.values()].sort((a, b) => b.total - a.total);
+}
+
 export function unitToSeconds(unit: string): number {
 	switch (unit) {
 		case 'year':
