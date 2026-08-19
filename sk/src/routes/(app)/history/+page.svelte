@@ -24,12 +24,6 @@
 	function cancelEdit() {
 		editingId = null;
 	}
-
-	function confirmDelete(event: SubmitEvent) {
-		if (!confirm(m.history_delete_confirm())) {
-			event.preventDefault();
-		}
-	}
 </script>
 
 <div class="flex flex-col gap-4">
@@ -105,7 +99,15 @@
 								<button type="button" onclick={() => startEdit(item.id)} class="text-sm text-stone-600 hover:underline">
 									{m.history_edit()}
 								</button>
-								<form method="post" action="?/delete" use:enhance onsubmit={confirmDelete}>
+								<form
+									method="post"
+									action="?/delete"
+									use:enhance={({ cancel }) => {
+										if (!confirm(m.history_delete_confirm())) {
+											cancel();
+										}
+									}}
+								>
 									<input type="hidden" name="recordId" value={item.id} />
 									<button type="submit" class="text-sm text-red-600 hover:underline">{m.history_delete()}</button>
 								</form>
