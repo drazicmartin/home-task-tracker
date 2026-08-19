@@ -5,12 +5,6 @@
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	function confirmDelete(event: SubmitEvent) {
-		if (!confirm(m.task_edit_delete_confirm())) {
-			event.preventDefault();
-		}
-	}
 </script>
 
 <div class="mx-auto max-w-md">
@@ -27,7 +21,16 @@
 		error={form?.message}
 	/>
 
-	<form method="post" action="?/delete" use:enhance onsubmit={confirmDelete} class="mt-4">
+	<form
+		method="post"
+		action="?/delete"
+		use:enhance={({ cancel }) => {
+			if (!confirm(m.task_edit_delete_confirm())) {
+				cancel();
+			}
+		}}
+		class="mt-4"
+	>
 		<button type="submit" class="text-sm text-red-600 hover:underline">{m.task_edit_delete()}</button>
 	</form>
 </div>
