@@ -3,7 +3,9 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, Sparkles, Swords } from '@lucide/svelte';
+	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, SearchX, Sparkles, Swords } from '@lucide/svelte';
+	import QuestFilterBar from '$lib/QuestFilterBar.svelte';
+	import { emptyFilters, filterQuests, isFiltering, type QuestFilters } from '$lib/questFilters';
 	import { questStatus, urgencyHue, type QuestStatus } from '$lib/scoring';
 	import { formatPoints } from '$lib/game';
 	import * as m from '$lib/paraglide/messages.js';
@@ -35,6 +37,37 @@
 		month: m.unit_month,
 		year: m.unit_year
 	};
+
+	// Search/filters live only in this browser tab: sessionStorage keeps them
+	// while hopping to a quest's edit page and back, and is optional (private
+	// mode, blocked storage) so every access is guarded.
+	const FILTERS_KEY = 'board-filters';
+	function loadFilters(): QuestFilters {
+		try {
+			const saved = sessionStorage.getItem(FILTERS_KEY);
+			if (saved) return { ...emptyFilters(), ...JSON.parse(saved) };
+		} catch {
+			// ignore unreadable / unavailable storage
+		}
+		return emptyFilters();
+	}
+	// SSR and hydration render unfiltered; saved filters are applied right after.
+	let filters = $state<QuestFilters>(emptyFilters());
+	let filtersRestored = $state(false);
+	$effect(() => {
+		filters = loadFilters();
+		filtersRestored = true;
+	});
+	$effect(() => {
+		const snapshot = JSON.stringify(filters); // read first so every field is tracked
+		if (!filtersRestored) return;
+		try {
+			sessionStorage.setItem(FILTERS_KEY, snapshot);
+		} catch {
+			// ignore
+		}
+	});
+	const visibleTasks = $derived(filterQuests(data.tasks, filters));
 
 	// neutral violet tint for on-demand quests, outside the green -> red urgency scale
 	const ON_DEMAND_HUE = 265;
@@ -114,9 +147,19 @@
 			{/if}
 		</div>
 
+		<QuestFilterBar bind:filters shown={visibleTasks.length} total={data.tasks.length} />
+
+		{#if visibleTasks.length === 0 && isFiltering(filters)}
+			<EmptyState icon={SearchX} message={m.filter_no_match()}>
+				<button type="button" class="btn" onclick={() => (filters = { ...emptyFilters(), sort: filters.sort })}>
+					{m.filter_reset()}
+				</button>
+			</EmptyState>
+		{/if}
+
 		<!-- one column on phones; cards need ~340px, so two columns only from md -->
 		<ul class="grid grid-cols-1 gap-3 md:grid-cols-2">
-			{#each data.tasks as task, i (task.id)}
+			{#each visibleTasks as task, i (task.id)}
 				{@const status = questStatus(task.todoPercentage)}
 				<li
 					class="quest animate-rise"
