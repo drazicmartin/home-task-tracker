@@ -48,6 +48,9 @@ services:
       - ORIGIN=${ORIGIN}
       - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL}
       - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD}
+      # Comma-separated account e-mails allowed to read every "message to
+      # the developer" in /feedback (optional)
+      - DEVELOPER_EMAILS=${DEVELOPER_EMAILS:-}
     expose:
       - "3000"
     restart: unless-stopped

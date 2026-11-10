@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
-	import { ChevronLeft, Copy, Crown, Link, Plus, Settings, TriangleAlert, Users, X } from '@lucide/svelte';
+	import { ChevronLeft, Copy, Crown, DoorOpen, Link, Plus, Settings, Skull, Trash, TriangleAlert, Users, X } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
@@ -18,6 +18,12 @@
 		await navigator.clipboard.writeText(inviteUrl(code));
 		toast.success(m.settings_copied());
 	}
+
+	let confirmName = $state('');
+
+	// who inherits the household if the owner leaves (oldest other member)
+	const successor = $derived(data.members.find((member) => member.user.id !== data.household.owner)?.user);
+	const canLeave = $derived(!data.isOwner || Boolean(successor));
 </script>
 
 <div class="mx-auto flex max-w-xl flex-col gap-4">
@@ -62,12 +68,16 @@
 							</span>
 						{/if}
 					</span>
-					{#if !isOwner && (data.isOwner || member.user.id === page.data.user?.id)}
-						<form method="post" action="?/removeMember" use:enhance>
+					{#if !isOwner && data.isOwner}
+						<form
+							method="post"
+							action="?/removeMember"
+							use:enhance={({ cancel }) => {
+								if (!confirm(m.settings_remove_confirm({ name: member.user.name || member.user.email }))) cancel();
+							}}
+						>
 							<input type="hidden" name="membershipId" value={member.membershipId} />
-							<button type="submit" class="btn btn-sm btn-red">
-								{member.user.id === page.data.user?.id ? m.settings_leave() : m.settings_remove()}
-							</button>
+							<button type="submit" class="btn btn-sm btn-red">{m.settings_remove()}</button>
 						</form>
 					{/if}
 				</li>
@@ -113,5 +123,63 @@
 				<p class="font-bold text-night-300">{m.settings_no_invites()}</p>
 			{/each}
 		</ul>
+	</section>
+
+	<!-- Danger zone: leave / delete the household -->
+	<section class="panel border-rose-500/70 p-4 sm:p-5">
+		<h2 class="panel-heading text-rose-300"><Skull class="size-5" strokeWidth={3} />{m.settings_danger_heading()}</h2>
+
+		{#if (form?.action === 'leave' || form?.action === 'deleteHousehold') && form?.message}
+			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
+		{/if}
+
+		<div class="panel-inset mt-3 flex flex-col gap-2 p-3">
+			<p class="font-display text-lg text-white">{m.settings_leave_heading()}</p>
+			<p class="text-sm font-bold text-night-200">
+				{#if !data.isOwner}
+					{m.settings_leave_hint()}
+				{:else if successor}
+					{m.settings_leave_owner_hint({ name: successor.name || successor.email })}
+				{:else}
+					{m.settings_leave_alone_hint()}
+				{/if}
+			</p>
+			<form
+				method="post"
+				action="?/leave"
+				use:enhance={({ cancel }) => {
+					if (!confirm(m.settings_leave_confirm({ household: data.household.name }))) cancel();
+				}}
+			>
+				<button type="submit" class="btn btn-sm btn-red btn-block" disabled={!canLeave}>
+					<DoorOpen class="size-4" strokeWidth={3} />{m.settings_leave_button()}
+				</button>
+			</form>
+		</div>
+
+		{#if data.isOwner}
+			<form
+				method="post"
+				action="?/deleteHousehold"
+				use:enhance={({ cancel }) => {
+					if (!confirm(m.settings_delete_confirm({ household: data.household.name }))) cancel();
+				}}
+				class="panel-inset mt-3 flex flex-col gap-2 border-dashed border-rose-500/60 p-3"
+			>
+				<p class="font-display text-lg text-white">{m.settings_delete_heading()}</p>
+				<p class="text-sm font-bold text-night-200">{m.settings_delete_hint()}</p>
+				<label class="field">
+					<span class="field-label">{m.settings_delete_type_name({ household: data.household.name })}</span>
+					<input name="confirmName" bind:value={confirmName} autocomplete="off" class="input" />
+				</label>
+				<button
+					type="submit"
+					class="btn btn-sm btn-red btn-block"
+					disabled={confirmName.trim() !== data.household.name.trim()}
+				>
+					<Trash class="size-4" strokeWidth={3} />{m.settings_delete_button()}
+				</button>
+			</form>
+		{/if}
 	</section>
 </div>

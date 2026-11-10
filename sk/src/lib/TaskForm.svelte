@@ -70,6 +70,7 @@
 				class="input pl-11 font-display text-lg text-gold-200"
 			/>
 		</span>
+		<span class="px-1 text-xs font-bold text-night-300">{m.task_form_score_hint()}</span>
 	</label>
 
 	<button type="submit" class="btn btn-gold btn-block shine mt-1">
