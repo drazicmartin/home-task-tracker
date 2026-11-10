@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { Check, TriangleAlert } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import Coin from '$lib/ui/Coin.svelte';
 
 	let {
 		action,
@@ -17,34 +19,35 @@
 
 <form method="post" {action} use:enhance class="flex flex-col gap-4">
 	{#if error}
-		<p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>
+		<p class="alert-error" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{error}</p>
 	{/if}
 
-	<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
-		{m.task_form_name()}
-		<input name="name" type="text" required value={initial.name} class="rounded-lg border border-stone-300 px-3 py-2" />
+	<label class="field">
+		<span class="field-label">{m.task_form_name()}</span>
+		<input name="name" type="text" required value={initial.name} class="input" />
 	</label>
 
-	<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
-		{m.task_form_description()}
-		<textarea name="description" rows="3" class="rounded-lg border border-stone-300 px-3 py-2">{initial.description}</textarea>
+	<label class="field">
+		<span class="field-label">{m.task_form_description()}</span>
+		<textarea name="description" rows="3" class="input">{initial.description}</textarea>
 	</label>
 
 	<div class="grid grid-cols-2 gap-3">
-		<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
-			{m.task_form_frequency()}
+		<label class="field">
+			<span class="field-label">{m.task_form_frequency()}</span>
 			<input
 				name="frequency"
 				type="number"
 				min="1"
+				inputmode="numeric"
 				required
 				value={initial.frequency}
-				class="rounded-lg border border-stone-300 px-3 py-2"
+				class="input"
 			/>
 		</label>
-		<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
-			{m.task_form_unit()}
-			<select name="unit" class="rounded-lg border border-stone-300 px-3 py-2">
+		<label class="field">
+			<span class="field-label">{m.task_form_unit()}</span>
+			<select name="unit" class="input">
 				<option value="day" selected={initial.unit === 'day'}>{m.task_form_unit_day()}</option>
 				<option value="week" selected={initial.unit === 'week'}>{m.task_form_unit_week()}</option>
 				<option value="month" selected={initial.unit === 'month'}>{m.task_form_unit_month()}</option>
@@ -53,14 +56,24 @@
 		</label>
 	</div>
 
-	<label class="flex flex-col gap-1 text-sm font-medium text-stone-700">
-		{m.task_form_score()}
-		<input name="score" type="number" min="0" required value={initial.score} class="rounded-lg border border-stone-300 px-3 py-2" />
+	<label class="field">
+		<span class="field-label">{m.task_form_score()}</span>
+		<span class="relative">
+			<Coin class="pointer-events-none absolute top-1/2 left-3 size-6 -translate-y-1/2" />
+			<input
+				name="score"
+				type="number"
+				min="0"
+				inputmode="numeric"
+				required
+				value={initial.score}
+				class="input pl-11 font-display text-lg text-gold-200"
+			/>
+		</span>
 	</label>
 
-	<div class="flex justify-end">
-		<button type="submit" class="rounded-full bg-stone-900 px-6 py-2.5 font-medium text-white hover:bg-stone-700">
-			{submitLabel ?? m.task_form_save()}
-		</button>
-	</div>
+	<button type="submit" class="btn btn-gold btn-block shine mt-1">
+		<Check class="size-5" strokeWidth={3.5} />
+		{submitLabel ?? m.task_form_save()}
+	</button>
 </form>

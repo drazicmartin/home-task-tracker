@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import { KeyRound } from '@lucide/svelte';
 	import { createBrowserPb } from '$lib/pocketbaseBrowser';
 	import { env } from '$env/dynamic/public';
 	import * as m from '$lib/paraglide/messages.js';
@@ -83,19 +84,15 @@
 {#if providers.length > 0}
 	<div class="flex flex-col gap-2">
 		{#each providers as provider (provider.name)}
-			<button
-				type="button"
-				disabled={pending}
-				onclick={() => login(provider.name)}
-				class="rounded-full border border-stone-300 px-6 py-3 font-medium text-stone-900 transition hover:bg-stone-100 disabled:opacity-50"
-			>
+			<button type="button" disabled={pending} onclick={() => login(provider.name)} class="btn btn-block">
+				<KeyRound class="size-5" strokeWidth={3} />
 				{m.oauth_continue_with({ provider: provider.displayName })}
 			</button>
 		{/each}
 	</div>
-	<div class="flex items-center gap-3 text-xs text-stone-400">
-		<span class="h-px flex-1 bg-stone-200"></span>
+	<div class="flex items-center gap-3 text-xs font-black tracking-widest text-night-300 uppercase">
+		<span class="h-[3px] flex-1 rounded-full bg-night-950/70"></span>
 		{m.oauth_or()}
-		<span class="h-px flex-1 bg-stone-200"></span>
+		<span class="h-[3px] flex-1 rounded-full bg-night-950/70"></span>
 	</div>
 {/if}
