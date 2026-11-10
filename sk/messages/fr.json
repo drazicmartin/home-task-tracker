@@ -214,5 +214,10 @@
 	"settings_delete_hint": "Supprime définitivement le foyer, toutes ses quêtes, son historique, ses membres et ses invitations. Action irréversible.",
 	"settings_delete_type_name": "Tapez « {household} » pour confirmer",
 	"settings_delete_button": "Supprimer définitivement",
-	"settings_delete_confirm": "Supprimer définitivement « {household} » et tout son contenu ?"
+	"settings_delete_confirm": "Supprimer définitivement « {household} » et tout son contenu ?",
+	"task_duplicate": "Dupliquer",
+	"task_duplicate_title": "Dupliquer la quête",
+	"task_duplicate_create": "Créer la copie",
+	"task_duplicate_name": "{name} (copie)",
+	"board_duplicate_aria": "Dupliquer {name}"
 }

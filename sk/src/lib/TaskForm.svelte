@@ -8,13 +8,25 @@
 		action,
 		initial = { name: '', description: '', frequency: 1, unit: 'week', score: 1 },
 		error,
-		submitLabel
+		submitLabel,
+		autofocus = false
 	}: {
 		action: string;
 		initial?: { name: string; description: string; frequency: number; unit: string; score: number };
 		error?: string;
 		submitLabel?: string;
+		/** Focus and select the name field on mount (e.g. when duplicating a quest). */
+		autofocus?: boolean;
 	} = $props();
+
+	let nameInput = $state<HTMLInputElement>();
+
+	$effect(() => {
+		if (autofocus && nameInput) {
+			nameInput.focus();
+			nameInput.select();
+		}
+	});
 </script>
 
 <form method="post" {action} use:enhance class="flex flex-col gap-4">
@@ -24,7 +36,7 @@
 
 	<label class="field">
 		<span class="field-label">{m.task_form_name()}</span>
-		<input name="name" type="text" required value={initial.name} class="input" />
+		<input bind:this={nameInput} name="name" type="text" required value={initial.name} class="input" />
 	</label>
 
 	<label class="field">

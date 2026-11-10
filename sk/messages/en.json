@@ -214,5 +214,10 @@
 	"settings_delete_hint": "Permanently deletes the household, all its quests, history, members and invites. This can't be undone.",
 	"settings_delete_type_name": "Type \"{household}\" to confirm",
 	"settings_delete_button": "Delete permanently",
-	"settings_delete_confirm": "Permanently delete \"{household}\" and everything in it?"
+	"settings_delete_confirm": "Permanently delete \"{household}\" and everything in it?",
+	"task_duplicate": "Duplicate",
+	"task_duplicate_title": "Duplicate quest",
+	"task_duplicate_create": "Create copy",
+	"task_duplicate_name": "{name} (copy)",
+	"board_duplicate_aria": "Duplicate {name}"
 }

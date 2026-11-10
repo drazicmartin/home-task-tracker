@@ -3,7 +3,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Check, Flame, Minus, Pencil, Plus, Sparkles, Swords } from '@lucide/svelte';
+	import { Check, Copy, Flame, Minus, Pencil, Plus, Sparkles, Swords } from '@lucide/svelte';
 	import { questStatus, urgencyHue, type QuestStatus } from '$lib/scoring';
 	import { formatPoints } from '$lib/game';
 	import * as m from '$lib/paraglide/messages.js';
@@ -150,9 +150,18 @@
 						</span>
 					</button>
 
-					<a href="/board/tasks/{task.id}/edit" class="quest-edit" aria-label={m.board_edit_aria({ name: task.name })}>
-						<Pencil class="size-4" strokeWidth={3} />
-					</a>
+					<span class="quest-tools">
+						<a href="/board/tasks/{task.id}/edit" class="quest-tool" aria-label={m.board_edit_aria({ name: task.name })}>
+							<Pencil class="size-4" strokeWidth={3} />
+						</a>
+						<a
+							href="/board/tasks/{task.id}/duplicate"
+							class="quest-tool"
+							aria-label={m.board_duplicate_aria({ name: task.name })}
+						>
+							<Copy class="size-4" strokeWidth={3} />
+						</a>
+					</span>
 				</li>
 			{/each}
 		</ul>
@@ -372,24 +381,34 @@
 		--fill: linear-gradient(90deg, hsl(var(--hue) 80% 42%), hsl(var(--hue) 90% 58%));
 	}
 
-	.quest-edit {
-		display: grid;
-		place-items: center;
+	/* Right column: edit (top) and duplicate (bottom) stacked. */
+	.quest-tools {
+		display: flex;
+		flex-direction: column;
 		flex-shrink: 0;
 		width: 3rem;
 		border-left: 3px solid var(--color-night-950);
 		border-radius: 0 1.05rem 1.05rem 0;
+		overflow: hidden;
 		background: rgb(11 7 32 / 0.3);
+	}
+	.quest-tool {
+		display: grid;
+		flex: 1;
+		place-items: center;
 		color: var(--color-night-300);
 		transition:
 			color 0.15s,
 			background 0.15s;
 	}
-	.quest-edit:hover {
+	.quest-tool + .quest-tool {
+		border-top: 3px solid var(--color-night-950);
+	}
+	.quest-tool:hover {
 		color: white;
 		background: rgb(11 7 32 / 0.5);
 	}
-	.quest-edit:focus-visible {
+	.quest-tool:focus-visible {
 		outline-offset: -3px;
 	}
 
@@ -408,7 +427,7 @@
 		.quest-name {
 			font-size: 1.05rem;
 		}
-		.quest-edit {
+		.quest-tools {
 			width: 2.6rem;
 		}
 	}
