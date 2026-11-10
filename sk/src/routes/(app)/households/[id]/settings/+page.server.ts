@@ -1,6 +1,17 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect, type Cookies } from '@sveltejs/kit';
 import { nanoid } from 'nanoid';
+import { getAdminClient } from '$lib/server/pbAdmin';
 import type { Actions, PageServerLoad } from './$types';
+
+const ACTIVE_HOUSEHOLD_COOKIE = 'active_household';
+
+/** After leaving/deleting a household, send the user to another one (or to the create/join screen). */
+function exitHousehold(cookies: Cookies, householdId: string): never {
+	if (cookies.get(ACTIVE_HOUSEHOLD_COOKIE) === householdId) {
+		cookies.delete(ACTIVE_HOUSEHOLD_COOKIE, { path: '/' });
+	}
+	redirect(303, '/board');
+}
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	let household;
@@ -71,14 +82,106 @@ export const actions: Actions = {
 		}
 	},
 
-	removeMember: async ({ request, locals }) => {
+	removeMember: async ({ request, params, locals, cookies }) => {
 		const form = await request.formData();
 		const membershipId = String(form.get('membershipId') ?? '');
 
+		let membership;
 		try {
+			membership = await locals.pb.collection('household_members').getOne(membershipId);
 			await locals.pb.collection('household_members').delete(membershipId);
 		} catch {
 			return fail(400, { action: 'removeMember', message: 'Impossible de retirer ce membre.' });
 		}
+
+		// removing yourself = leaving: this settings page is no longer viewable
+		if (membership.user === locals.user!.id) exitHousehold(cookies, params.id);
+	},
+
+	/**
+	 * Leave the household. A regular member just drops their membership; the
+	 * owner hands ownership over to the longest-standing other member first
+	 * (done with the superuser client, since nobody may set households.owner
+	 * to someone else through the API rules). An owner who is alone has to
+	 * delete the household instead.
+	 */
+	leave: async ({ params, locals, cookies }) => {
+		const userId = locals.user!.id;
+
+		let household;
+		let members;
+		try {
+			household = await locals.pb.collection('households').getOne(params.id);
+			members = await locals.pb.collection('household_members').getFullList({
+				filter: locals.pb.filter('household = {:h}', { h: params.id }),
+				sort: 'created'
+			});
+		} catch {
+			return fail(404, { action: 'leave', message: 'Foyer introuvable.' });
+		}
+
+		const mine = members.find((m) => m.user === userId);
+		if (!mine) return fail(400, { action: 'leave', message: "Vous n'êtes pas membre de ce foyer." });
+
+		try {
+			if (household.owner === userId) {
+				const successor = members.find((m) => m.user !== userId);
+				if (!successor) {
+					return fail(400, {
+						action: 'leave',
+						message: 'Vous êtes seul dans ce foyer : supprimez-le plutôt que de le quitter.'
+					});
+				}
+				const admin = await getAdminClient();
+				await admin.collection('households').update(params.id, { owner: successor.user });
+				await admin.collection('household_members').delete(mine.id);
+			} else {
+				await locals.pb.collection('household_members').delete(mine.id);
+			}
+		} catch {
+			return fail(400, { action: 'leave', message: 'Impossible de quitter le foyer, réessayez.' });
+		}
+
+		exitHousehold(cookies, params.id);
+	},
+
+	/**
+	 * Permanently delete the household with all its quests, history, members
+	 * and invites. Owner only. History records are deleted explicitly before
+	 * the household: records.task is a required, non-cascading relation, so
+	 * letting the household cascade remove tasks first could be refused.
+	 */
+	deleteHousehold: async ({ request, params, locals, cookies }) => {
+		const form = await request.formData();
+
+		let household;
+		try {
+			household = await locals.pb.collection('households').getOne(params.id);
+		} catch {
+			return fail(404, { action: 'deleteHousehold', message: 'Foyer introuvable.' });
+		}
+		if (household.owner !== locals.user!.id) {
+			return fail(403, { action: 'deleteHousehold', message: 'Seul le propriétaire peut supprimer le foyer.' });
+		}
+		if (String(form.get('confirmName') ?? '').trim() !== household.name.trim()) {
+			return fail(400, {
+				action: 'deleteHousehold',
+				message: 'Le nom saisi ne correspond pas au nom du foyer.'
+			});
+		}
+
+		try {
+			const admin = await getAdminClient();
+			const byHousehold = admin.filter('household = {:h}', { h: params.id });
+			for (const collection of ['records', 'tasks', 'invites', 'household_members']) {
+				const rows = await admin.collection(collection).getFullList({ filter: byHousehold, fields: 'id' });
+				for (const row of rows) await admin.collection(collection).delete(row.id);
+			}
+			await admin.collection('households').delete(params.id);
+		} catch {
+			return fail(400, { action: 'deleteHousehold', message: 'Impossible de supprimer le foyer, réessayez.' });
+		}
+
+		exitHousehold(cookies, params.id);
 	}
 };

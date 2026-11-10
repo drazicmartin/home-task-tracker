@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { Dialog } from 'bits-ui';
-	import { ChartColumn, House, LogOut, Pause, Play, ScrollText, Settings, Swords, Trophy, User } from '@lucide/svelte';
+	import { ChartColumn, House, LogOut, MessageSquare, Pause, Play, ScrollText, Settings, Swords, Trophy, User } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { formatPoints, levelInfo } from '$lib/game';
 	import Avatar from '$lib/ui/Avatar.svelte';
@@ -151,6 +151,14 @@
 				<a href="/account" class="btn btn-blue btn-block">
 					<User class="size-5" strokeWidth={3} />
 					{m.nav_account()}
+				</a>
+
+				<a
+					href="/feedback?from={encodeURIComponent(page.url.pathname)}"
+					class="btn btn-block"
+				>
+					<MessageSquare class="size-5" strokeWidth={3} />
+					{m.nav_feedback()}
 				</a>
 
 				<form method="post" action="/logout">

@@ -24,6 +24,15 @@ Stack:
   rest of the household
 - Optional "Continue with Authentik" SSO login (see below)
 - French and English UI (French by default), switchable per-account
+- Built-in quest catalogue (dishes, vacuuming, windows, car, cat litter...)
+  to add several common chores at once, with points on one consistent scale:
+  about 1 point per 5 minutes of effort, +1/+2 for unpleasant chores
+  (`sk/src/lib/questCatalog.ts`)
+- Leave a household (the owner hands ownership to the next member) or
+  delete it entirely, from the household settings
+- "Message the developer" inbox: users send bug reports / ideas from the
+  pause menu; accounts listed in `DEVELOPER_EMAILS` see all of them and can
+  copy the open ones as a ready-to-paste Claude Code prompt
 
 ## Development
 
