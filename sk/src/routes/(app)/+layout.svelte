@@ -1,18 +1,31 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { Dialog } from 'bits-ui';
+	import { ChartColumn, House, LogOut, Pause, Play, ScrollText, Settings, Swords, Trophy, User } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { formatPoints, levelInfo } from '$lib/game';
+	import Avatar from '$lib/ui/Avatar.svelte';
+	import Coin from '$lib/ui/Coin.svelte';
+	import XpBar from '$lib/ui/XpBar.svelte';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
 
 	let menuOpen = $state(false);
 
-	const links = $derived([
-		{ href: '/board', label: m.nav_tasks() },
-		{ href: '/dashboard', label: m.nav_dashboard() },
-		{ href: '/leaderboard', label: m.nav_leaderboard() },
-		{ href: '/history', label: m.nav_history() }
+	const playerName = $derived(data.user?.name || data.user?.email || '');
+	const level = $derived(levelInfo(data.playerPoints).level);
+
+	const tabs = $derived([
+		{ href: '/board', label: m.nav_tasks(), icon: Swords },
+		{ href: '/dashboard', label: m.nav_dashboard(), icon: ChartColumn },
+		{ href: '/leaderboard', label: m.nav_leaderboard(), icon: Trophy },
+		{ href: '/history', label: m.nav_history(), icon: ScrollText }
 	]);
+
+	function isActive(href: string): boolean {
+		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
+	}
 
 	$effect(() => {
 		page.url.pathname;
@@ -20,125 +33,133 @@
 	});
 </script>
 
-<div class="min-h-screen bg-stone-50">
-	<header class="border-b border-stone-200 bg-white">
-		<div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
-			<div class="flex min-w-0 items-center gap-6">
-				<span class="shrink-0 font-bold text-stone-900">HTT</span>
-				{#if data.activeHousehold}
-					<nav class="hidden gap-1 sm:flex">
-						{#each links as link (link.href)}
-							<a
-								href={link.href}
-								class="rounded-full px-3 py-1.5 text-sm font-medium transition {page.url.pathname === link.href
-									? 'bg-stone-900 text-white'
-									: 'text-stone-600 hover:bg-stone-100'}"
-							>
-								{link.label}
-							</a>
-						{/each}
-					</nav>
-				{/if}
-			</div>
-			<div class="hidden items-center gap-3 sm:flex">
-				{#if data.activeHousehold}
-					{#if data.households.length > 1}
-						<form method="post" action="/households/switch">
-							<select
-								name="householdId"
-								onchange={(e) => e.currentTarget.form?.requestSubmit()}
-								class="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
-							>
-								{#each data.households as household (household.id)}
-									<option value={household.id} selected={household.id === data.activeHousehold.id}>
-										{household.name}
-									</option>
-								{/each}
-							</select>
-						</form>
-					{:else}
-						<span class="text-sm text-stone-500">{data.activeHousehold.name}</span>
+<div class="min-h-dvh">
+	<!-- HUD: player portrait + level, XP bar, coins, pause -->
+	<header
+		class="sticky top-0 z-40 border-b-[3px] border-night-950 bg-gradient-to-b from-night-800/95 to-night-900/85 pt-[env(safe-area-inset-top)] shadow-[0_8px_24px_-12px_rgb(0_0_0/0.8)] backdrop-blur-md"
+	>
+		<div class="mx-auto flex max-w-4xl items-center gap-2.5 px-3 py-2.5 sm:px-4">
+			<a href="/account" class="flex min-w-0 flex-1 items-center gap-3 rounded-2xl py-0.5 pr-2">
+				<Avatar
+					name={playerName}
+					seed={data.user?.id}
+					level={data.activeHousehold ? level : undefined}
+					class="size-11 text-lg"
+				/>
+				<span class="flex min-w-0 flex-1 flex-col">
+					<span class="text-outline truncate font-display text-[1.05rem] leading-tight text-white">{playerName}</span>
+					{#if data.activeHousehold}
+						<XpBar points={data.playerPoints} class="mt-1 max-w-56" />
 					{/if}
-					<a href="/households/{data.activeHousehold.id}/settings" class="text-sm text-stone-600 hover:text-stone-900">
-						{m.nav_settings()}
-					</a>
-				{/if}
-				<a href="/account" class="text-sm text-stone-600 hover:text-stone-900">{m.nav_account()}</a>
-				<form method="post" action="/logout">
-					<button type="submit" class="text-sm text-stone-600 hover:text-stone-900">{m.nav_logout()}</button>
-				</form>
-			</div>
+				</span>
+			</a>
+
+			{#if data.activeHousehold}
+				<span class="counter">
+					<Coin class="size-6" />
+					<span aria-hidden="true">{formatPoints(data.playerPoints)}</span>
+					<span class="sr-only">{m.hud_points({ points: formatPoints(data.playerPoints) })}</span>
+				</span>
+			{/if}
+
 			<button
 				type="button"
 				aria-label={m.nav_menu()}
-				aria-expanded={menuOpen}
-				onclick={() => (menuOpen = !menuOpen)}
-				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 sm:hidden"
+				aria-haspopup="dialog"
+				onclick={() => (menuOpen = true)}
+				class="btn btn-icon btn-sm"
 			>
-				{#if menuOpen}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-					</svg>
-				{:else}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-					</svg>
-				{/if}
+				<Pause class="size-5" strokeWidth={3} fill="currentColor" />
 			</button>
 		</div>
+	</header>
 
-		{#if menuOpen}
-			<div class="flex flex-col gap-3 border-t border-stone-200 px-4 py-3 sm:hidden">
-				{#if data.activeHousehold}
-					<div class="flex flex-col gap-1">
-						{#each links as link (link.href)}
-							<a
-								href={link.href}
-								class="rounded-lg px-3 py-2 text-sm font-medium transition {page.url.pathname === link.href
-									? 'bg-stone-900 text-white'
-									: 'text-stone-600 hover:bg-stone-100'}"
-							>
-								{link.label}
-							</a>
-						{/each}
-					</div>
+	<main
+		class="mx-auto max-w-4xl px-4 pt-5 sm:px-6 {data.activeHousehold
+			? 'pb-[calc(7.5rem_+_env(safe-area-inset-bottom))]'
+			: 'pb-12'}"
+	>
+		{@render children()}
+	</main>
 
-					{#if data.households.length > 1}
-						<form method="post" action="/households/switch">
-							<select
-								name="householdId"
-								onchange={(e) => e.currentTarget.form?.requestSubmit()}
-								class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
-							>
-								{#each data.households as household (household.id)}
-									<option value={household.id} selected={household.id === data.activeHousehold.id}>
-										{household.name}
-									</option>
-								{/each}
-							</select>
-						</form>
-					{:else}
-						<span class="px-3 text-sm text-stone-500">{data.activeHousehold.name}</span>
-					{/if}
-
-					<a
-						href="/households/{data.activeHousehold.id}/settings"
-						class="rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-100"
-					>
-						{m.nav_settings()}
+	<!-- Bottom tab bar: where thumbs are on a phone, and still tidy on desktop -->
+	{#if data.activeHousehold}
+		<nav
+			class="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-night-950/95 via-night-950/60 to-transparent px-3 pt-8 pb-[calc(0.6rem_+_env(safe-area-inset-bottom))]"
+		>
+			<div class="tabbar pointer-events-auto mx-auto max-w-md">
+				{#each tabs as tab (tab.href)}
+					<a href={tab.href} class="tab" aria-current={isActive(tab.href) ? 'page' : undefined}>
+						<span class="tab-icon"><tab.icon class="size-5" strokeWidth={2.75} /></span>
+						<span class="tab-label">{tab.label}</span>
 					</a>
+				{/each}
+			</div>
+		</nav>
+	{/if}
+</div>
+
+<!-- Pause menu -->
+<Dialog.Root bind:open={menuOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay class="overlay" />
+		<Dialog.Content class="panel sheet">
+			<div class="mb-5 flex justify-center">
+				<Dialog.Title class="ribbon">
+					<Pause class="size-4" strokeWidth={3} fill="currentColor" />
+					{m.menu_title()}
+				</Dialog.Title>
+			</div>
+
+			<div class="flex flex-col gap-3">
+				<Dialog.Close class="btn btn-gold btn-block">
+					<Play class="size-5" strokeWidth={3} fill="currentColor" />
+					{m.menu_resume()}
+				</Dialog.Close>
+
+				{#if data.activeHousehold}
+					<section class="panel-inset flex flex-col gap-2.5 p-3">
+						<p class="field-label flex items-center gap-1.5">
+							<House class="size-3.5" strokeWidth={3} />
+							{m.menu_household()}
+						</p>
+						{#if data.households.length > 1}
+							<form method="post" action="/households/switch">
+								<select
+									name="householdId"
+									aria-label={m.menu_switch_household()}
+									onchange={(e) => e.currentTarget.form?.requestSubmit()}
+									class="input"
+								>
+									{#each data.households as household (household.id)}
+										<option value={household.id} selected={household.id === data.activeHousehold.id}>
+											{household.name}
+										</option>
+									{/each}
+								</select>
+							</form>
+						{:else}
+							<p class="truncate font-display text-xl text-white">{data.activeHousehold.name}</p>
+						{/if}
+						<a href="/households/{data.activeHousehold.id}/settings" class="btn btn-sm">
+							<Settings class="size-4" strokeWidth={3} />
+							{m.nav_settings()}
+						</a>
+					</section>
 				{/if}
-				<a href="/account" class="rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-100">{m.nav_account()}</a>
+
+				<a href="/account" class="btn btn-blue btn-block">
+					<User class="size-5" strokeWidth={3} />
+					{m.nav_account()}
+				</a>
+
 				<form method="post" action="/logout">
-					<button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm text-stone-600 hover:bg-stone-100">
+					<button type="submit" class="btn btn-red btn-block">
+						<LogOut class="size-5" strokeWidth={3} />
 						{m.nav_logout()}
 					</button>
 				</form>
 			</div>
-		{/if}
-	</header>
-
-	<main class="mx-auto max-w-4xl px-4 py-8">
-		{@render children()}
-	</main>
-</div>
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>

@@ -13,6 +13,10 @@ Stack:
 
 ## Features
 
+- Mobile-first, video-game-style UI: chores are quests on a quest board, a
+  HUD shows your level, XP bar and coins (levels are derived from points
+  earned, nothing extra is stored), a bottom tab bar for one-handed use, and
+  a podium leaderboard
 - Task board with a recurrence-based "how overdue is this" visual, and a
   completion dialog that splits points across whoever did it together
 - Per-household leaderboard (week / month / all-time) and activity history

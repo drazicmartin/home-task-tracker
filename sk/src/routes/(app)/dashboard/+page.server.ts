@@ -1,4 +1,4 @@
-import { getHouseholdRecords, getOrderedTasksWithScores, getUserTotals, type Window } from '$lib/scoring';
+import { getHouseholdRecords, getOrderedTasksWithScores, getUserTotals, questStatus, type Window } from '$lib/scoring';
 import type { PageServerLoad } from './$types';
 
 type TrendPoint = { date: string; count: number };
@@ -22,9 +22,7 @@ function bucketTrend(records: Awaited<ReturnType<typeof getHouseholdRecords>>, w
 function bucketHealth(tasks: Awaited<ReturnType<typeof getOrderedTasksWithScores>>): Health {
 	const health: Health = { ok: 0, dueSoon: 0, overdue: 0 };
 	for (const task of tasks) {
-		if (task.todoPercentage > 100) health.overdue += 1;
-		else if (task.todoPercentage >= 70) health.dueSoon += 1;
-		else health.ok += 1;
+		health[questStatus(task.todoPercentage)] += 1;
 	}
 	return health;
 }

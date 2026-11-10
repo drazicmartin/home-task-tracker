@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { Check, ChevronLeft, ChevronRight, Pencil, ScrollText, Trash, TriangleAlert, X } from '@lucide/svelte';
 	import { getLocale } from '$lib/paraglide/runtime.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { formatPoints } from '$lib/game';
+	import Avatar from '$lib/ui/Avatar.svelte';
+	import Coin from '$lib/ui/Coin.svelte';
+	import EmptyState from '$lib/ui/EmptyState.svelte';
+	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -27,20 +33,19 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<h1 class="text-xl font-semibold text-stone-900">{m.history_title()}</h1>
+	<PageHeader title={m.history_title()} eyebrow={data.activeHousehold?.name} icon={ScrollText} />
 
 	{#if form?.message}
-		<p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{form.message}</p>
+		<p class="alert-error" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
 	{/if}
 
 	{#if data.items.length === 0}
-		<div class="rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center text-stone-500">
-			{m.history_empty()}
-		</div>
+		<EmptyState icon={ScrollText} message={m.history_empty()} />
 	{:else}
-		<ul class="flex flex-col gap-2">
+		<ul class="flex flex-col gap-2.5">
 			{#each data.items as item (item.id)}
-				<li class="rounded-xl border border-stone-200 bg-white px-4 py-3">
+				{@const userName = item.expand?.user?.name || item.expand?.user?.email || m.history_someone()}
+				<li class="panel px-3 py-3">
 					{#if editingId === item.id}
 						<form
 							method="post"
@@ -51,16 +56,16 @@
 									await update();
 								};
 							}}
-							class="flex flex-col gap-2"
+							class="flex flex-col gap-3"
 						>
 							<input type="hidden" name="recordId" value={item.id} />
-							<div class="flex flex-wrap gap-2">
-								<select name="task" class="min-w-0 flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm">
-									{#each data.tasks as task (task.id)}
-										<option value={task.id} selected={task.id === item.task}>{task.name}</option>
-									{/each}
-								</select>
-								<select name="user" class="min-w-0 flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm">
+							<select name="task" class="input" aria-label={m.nav_tasks()}>
+								{#each data.tasks as task (task.id)}
+									<option value={task.id} selected={task.id === item.task}>{task.name}</option>
+								{/each}
+							</select>
+							<div class="grid grid-cols-[1fr_7rem] gap-2">
+								<select name="user" class="input min-w-0" aria-label={m.settings_members()}>
 									{#each data.members as member (member.id)}
 										<option value={member.id} selected={member.id === item.user}>{member.name}</option>
 									{/each}
@@ -70,34 +75,45 @@
 									name="score"
 									min="0"
 									step="0.5"
+									inputmode="decimal"
 									value={item.score}
-									class="w-24 rounded-lg border border-stone-300 px-3 py-2 text-sm"
+									class="input"
 									aria-label={m.history_score()}
 								/>
 							</div>
-							<div class="flex gap-2">
-								<button type="submit" class="rounded-full bg-stone-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-stone-700">
-									{m.history_save()}
+							<div class="grid grid-cols-2 gap-2">
+								<button type="button" onclick={cancelEdit} class="btn btn-sm">
+									<X class="size-4" strokeWidth={3.5} />{m.history_cancel()}
 								</button>
-								<button type="button" onclick={cancelEdit} class="rounded-full border border-stone-300 px-4 py-1.5 text-sm hover:bg-stone-100">
-									{m.history_cancel()}
+								<button type="submit" class="btn btn-sm btn-green">
+									<Check class="size-4" strokeWidth={3.5} />{m.history_save()}
 								</button>
 							</div>
 						</form>
 					{:else}
-						<div class="flex items-center justify-between gap-3">
-							<div class="min-w-0">
-								<p class="truncate font-medium text-stone-900">{item.expand?.task?.name ?? m.history_deleted_task()}</p>
-								<p class="truncate text-sm text-stone-500">
-									{item.expand?.user?.name ?? m.history_someone()} · {formatDate(item.created)}
-								</p>
-							</div>
-							<div class="flex shrink-0 items-center gap-3">
-								<span class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-									+{item.score}
-								</span>
-								<button type="button" onclick={() => startEdit(item.id)} class="text-sm text-stone-600 hover:underline">
-									{m.history_edit()}
+						<div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5">
+							<span class="row-span-2">
+								<Avatar name={userName} seed={item.user} class="size-11 text-base" />
+							</span>
+							<p class="truncate font-display text-lg leading-tight text-white">
+								{item.expand?.task?.name ?? m.history_deleted_task()}
+							</p>
+							<span class="flex items-center justify-end gap-1 font-display text-lg leading-none text-gold-200">
+								+{formatPoints(item.score)}<Coin class="size-5" />
+								<span class="sr-only">{m.board_pts({ score: formatPoints(item.score) })}</span>
+							</span>
+							<p class="truncate text-xs font-extrabold text-night-300">
+								{userName} · {formatDate(item.created)}
+							</p>
+							<div class="flex justify-end gap-1.5">
+								<button
+									type="button"
+									onclick={() => startEdit(item.id)}
+									class="btn btn-icon btn-sm"
+									aria-label={m.history_edit()}
+									title={m.history_edit()}
+								>
+									<Pencil class="size-4" strokeWidth={3} />
 								</button>
 								<form
 									method="post"
@@ -109,7 +125,14 @@
 									}}
 								>
 									<input type="hidden" name="recordId" value={item.id} />
-									<button type="submit" class="text-sm text-red-600 hover:underline">{m.history_delete()}</button>
+									<button
+										type="submit"
+										class="btn btn-icon btn-sm btn-red"
+										aria-label={m.history_delete()}
+										title={m.history_delete()}
+									>
+										<Trash class="size-4" strokeWidth={3} />
+									</button>
 								</form>
 							</div>
 						</div>
@@ -119,19 +142,23 @@
 		</ul>
 
 		{#if data.totalPages > 1}
-			<div class="flex justify-center gap-2 pt-2">
+			<nav class="flex items-center justify-between gap-2 pt-1">
 				{#if data.page > 1}
-					<a href="?page={data.page - 1}" class="rounded-full border border-stone-300 px-4 py-1.5 text-sm hover:bg-stone-100">
-						{m.history_prev()}
+					<a href="?page={data.page - 1}" class="btn btn-sm">
+						<ChevronLeft class="size-4" strokeWidth={3.5} />{m.history_prev()}
 					</a>
+				{:else}
+					<span></span>
 				{/if}
-				<span class="px-2 py-1.5 text-sm text-stone-500">{m.history_page({ page: data.page, totalPages: data.totalPages })}</span>
+				<span class="counter px-3 text-sm">{m.history_page({ page: data.page, totalPages: data.totalPages })}</span>
 				{#if data.page < data.totalPages}
-					<a href="?page={data.page + 1}" class="rounded-full border border-stone-300 px-4 py-1.5 text-sm hover:bg-stone-100">
-						{m.history_next()}
+					<a href="?page={data.page + 1}" class="btn btn-sm">
+						{m.history_next()}<ChevronRight class="size-4" strokeWidth={3.5} />
 					</a>
+				{:else}
+					<span></span>
 				{/if}
-			</div>
+			</nav>
 		{/if}
 	{/if}
 </div>

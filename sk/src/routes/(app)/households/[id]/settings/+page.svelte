@@ -2,7 +2,10 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
+	import { ChevronLeft, Copy, Crown, Link, Plus, Settings, TriangleAlert, Users, X } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import Avatar from '$lib/ui/Avatar.svelte';
+	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -17,45 +20,52 @@
 	}
 </script>
 
-<div class="flex flex-col gap-8">
-	<div>
-		<h1 class="text-2xl font-bold text-stone-900">{m.settings_title()}</h1>
-		<a href="/board" class="text-sm text-stone-500 underline">{m.back_to_board()}</a>
-	</div>
+<div class="mx-auto flex max-w-xl flex-col gap-4">
+	<a href="/board" class="btn btn-sm self-start">
+		<ChevronLeft class="size-4" strokeWidth={3.5} />{m.back_to_board()}
+	</a>
+	<PageHeader title={m.settings_title()} eyebrow={data.household.name} icon={Settings} />
 
-	<section class="rounded-2xl border border-stone-200 bg-white p-6">
-		<h2 class="font-semibold text-stone-900">{m.settings_household_name()}</h2>
+	<section class="panel p-4 sm:p-5">
+		<h2 class="panel-heading">{m.settings_household_name()}</h2>
 		{#if form?.action === 'rename' && form?.message}
-			<p class="mt-2 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{form.message}</p>
+			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
 		{/if}
 		<form method="post" action="?/rename" use:enhance class="mt-3 flex gap-2">
 			<input
 				name="name"
 				value={data.household.name}
 				disabled={!data.isOwner}
-				class="flex-1 rounded-lg border border-stone-300 px-3 py-2 disabled:bg-stone-100 disabled:text-stone-500"
+				aria-label={m.settings_household_name()}
+				class="input min-w-0 flex-1"
 			/>
 			{#if data.isOwner}
-				<button type="submit" class="rounded-full bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-700">
-					{m.settings_rename()}
-				</button>
+				<button type="submit" class="btn btn-gold">{m.settings_rename()}</button>
 			{/if}
 		</form>
 	</section>
 
-	<section class="rounded-2xl border border-stone-200 bg-white p-6">
-		<h2 class="font-semibold text-stone-900">{m.settings_members()}</h2>
+	<section class="panel p-4 sm:p-5">
+		<h2 class="panel-heading"><Users class="size-5" strokeWidth={3} />{m.settings_members()}</h2>
 		<ul class="mt-3 flex flex-col gap-2">
 			{#each data.members as member (member.membershipId)}
-				<li class="flex items-center justify-between rounded-lg bg-stone-50 px-4 py-2">
-					<span class="text-stone-800">
-						{member.user.name || member.user.email}
-						{#if member.user.id === data.household.owner}<span class="ml-1 text-xs text-stone-400">{m.settings_owner_tag()}</span>{/if}
+				{@const isOwner = member.user.id === data.household.owner}
+				<li class="panel-inset flex items-center gap-3 py-2 pr-2 pl-2.5">
+					<Avatar name={member.user.name || member.user.email} seed={member.user.id} class="size-10 text-base" />
+					<span class="min-w-0 flex-1">
+						<span class="block truncate font-display text-lg leading-tight text-white">
+							{member.user.name || member.user.email}
+						</span>
+						{#if isOwner}
+							<span class="chip chip-gold mt-0.5">
+								<Crown class="size-3" strokeWidth={3} fill="currentColor" />{m.settings_owner_tag()}
+							</span>
+						{/if}
 					</span>
-					{#if member.user.id !== data.household.owner && (data.isOwner || member.user.id === page.data.user?.id)}
+					{#if !isOwner && (data.isOwner || member.user.id === page.data.user?.id)}
 						<form method="post" action="?/removeMember" use:enhance>
 							<input type="hidden" name="membershipId" value={member.membershipId} />
-							<button type="submit" class="text-sm text-red-600 hover:underline">
+							<button type="submit" class="btn btn-sm btn-red">
 								{member.user.id === page.data.user?.id ? m.settings_leave() : m.settings_remove()}
 							</button>
 						</form>
@@ -64,39 +74,43 @@
 			{/each}
 		</ul>
 		{#if form?.action === 'removeMember' && form?.message}
-			<p class="mt-2 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{form.message}</p>
+			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
 		{/if}
 	</section>
 
-	<section class="rounded-2xl border border-stone-200 bg-white p-6">
-		<div class="flex items-center justify-between">
-			<h2 class="font-semibold text-stone-900">{m.settings_invitations()}</h2>
+	<section class="panel p-4 sm:p-5">
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="panel-heading"><Link class="size-5" strokeWidth={3} />{m.settings_invitations()}</h2>
 			<form method="post" action="?/createInvite" use:enhance>
-				<button type="submit" class="rounded-full border border-stone-300 px-4 py-1.5 text-sm font-medium hover:bg-stone-100">
-					{m.settings_new_link()}
+				<button type="submit" class="btn btn-sm btn-green">
+					<Plus class="size-4" strokeWidth={3.5} />{m.settings_new_link()}
 				</button>
 			</form>
 		</div>
 		{#if form?.action === 'createInvite' && form?.message}
-			<p class="mt-2 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{form.message}</p>
+			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
 		{/if}
 		<ul class="mt-3 flex flex-col gap-2">
 			{#each data.invites as invite (invite.id)}
-				<li class="flex items-center justify-between gap-3 rounded-lg bg-stone-50 px-4 py-2 text-sm">
-					<code class="truncate text-stone-600">{inviteUrl(invite.code)}</code>
-					<div class="flex shrink-0 items-center gap-3">
-						<span class="text-xs text-stone-400">{m.settings_uses({ count: invite.uses_count })}</span>
-						<button type="button" onclick={() => copyInvite(invite.code)} class="text-stone-600 hover:underline">
-							{m.settings_copy()}
+				<li class="panel-inset flex flex-col gap-2 p-2.5">
+					<code class="truncate rounded-lg bg-night-950/60 px-2.5 py-1.5 text-sm font-bold text-night-100">
+						{inviteUrl(invite.code)}
+					</code>
+					<span class="px-1 text-xs font-extrabold text-night-300">{m.settings_uses({ count: invite.uses_count })}</span>
+					<div class="grid grid-cols-2 gap-2">
+						<button type="button" onclick={() => copyInvite(invite.code)} class="btn btn-sm btn-blue">
+							<Copy class="size-4" strokeWidth={3} />{m.settings_copy()}
 						</button>
-						<form method="post" action="?/revokeInvite" use:enhance>
+						<form method="post" action="?/revokeInvite" use:enhance class="contents">
 							<input type="hidden" name="inviteId" value={invite.id} />
-							<button type="submit" class="text-red-600 hover:underline">{m.settings_revoke()}</button>
+							<button type="submit" class="btn btn-sm btn-red">
+								<X class="size-4" strokeWidth={3.5} />{m.settings_revoke()}
+							</button>
 						</form>
 					</div>
 				</li>
 			{:else}
-				<p class="text-sm text-stone-500">{m.settings_no_invites()}</p>
+				<p class="font-bold text-night-300">{m.settings_no_invites()}</p>
 			{/each}
 		</ul>
 	</section>

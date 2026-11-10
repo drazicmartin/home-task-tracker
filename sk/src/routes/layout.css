@@ -1,1 +1,739 @@
 @import 'tailwindcss';
+
+/*
+ * HTT game theme.
+ *
+ * The whole UI is styled like a casual mobile game: a starry night backdrop,
+ * chunky outlined panels, 3D "press-down" buttons, glossy meters and a
+ * display font for titles and numbers. Tokens live in @theme (so Tailwind
+ * utilities like `bg-night-800` / `font-display` exist), and the reusable
+ * game pieces (.btn, .panel, .input, .meter, ...) are plain component classes
+ * below so markup stays readable and Tailwind utilities can still override
+ * them.
+ *
+ * `static` makes Tailwind always emit these as CSS variables, because scoped
+ * <style> blocks in components reference them directly (Tailwind doesn't see
+ * those usages).
+ */
+@theme static {
+	--font-sans: 'Nunito Variable', 'Nunito', ui-sans-serif, system-ui, sans-serif;
+	--font-display: 'Lilita One', 'Nunito Variable', ui-sans-serif, system-ui, sans-serif;
+
+	--color-night-50: #f3f0ff;
+	--color-night-100: #e2ddff;
+	--color-night-200: #c6bef4;
+	--color-night-300: #a095dc;
+	--color-night-400: #7667bd;
+	--color-night-500: #56479c;
+	--color-night-600: #413381;
+	--color-night-700: #2f2568;
+	--color-night-800: #221b4f;
+	--color-night-900: #160f36;
+	--color-night-950: #0b0720;
+
+	--color-gold-200: #fff1b8;
+	--color-gold-300: #ffe066;
+	--color-gold-400: #ffcd38;
+	--color-gold-500: #ffb703;
+	--color-gold-600: #c97a00;
+	--color-gold-900: #3d1f00;
+
+	--animate-float: float 6s ease-in-out infinite;
+	--animate-bob: bob 0.9s ease-in-out infinite;
+	--animate-pop-in: pop-in 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+	--animate-pulse-glow: pulse-glow 1.6s ease-in-out infinite;
+	--animate-twinkle: twinkle 3.5s ease-in-out infinite;
+	--animate-spin-slow: spin 10s linear infinite;
+	--animate-sheet-in: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+	--animate-fade-in: fade-in 0.2s ease-out both;
+	--animate-rise: rise 0.5s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+/* Keyframes live outside @theme so they are always emitted: component
+ * <style> blocks reference them by name. */
+@keyframes float {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
+}
+@keyframes bob {
+	0%,
+	100% {
+		transform: translateY(0) scale(1);
+	}
+	50% {
+		transform: translateY(-3px) scale(1.08);
+	}
+}
+/* pop-in / rise animate the standalone `scale` / `translate` properties so
+ * they compose with hover/press `transform`s instead of overriding them. */
+@keyframes pop-in {
+	from {
+		opacity: 0;
+		scale: 0.6;
+	}
+	to {
+		opacity: 1;
+		scale: 1;
+	}
+}
+@keyframes pulse-glow {
+	0%,
+	100% {
+		box-shadow:
+			0 0 0 0 rgb(244 63 94 / 0.55),
+			0 4px 0 var(--color-night-950);
+	}
+	50% {
+		box-shadow:
+			0 0 0 6px rgb(244 63 94 / 0),
+			0 4px 0 var(--color-night-950);
+	}
+}
+@keyframes twinkle {
+	0%,
+	100% {
+		opacity: 0.35;
+	}
+	50% {
+		opacity: 0.9;
+	}
+}
+@keyframes sheet-in {
+	from {
+		opacity: 0;
+		transform: translateY(40px) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes rise {
+	from {
+		opacity: 0;
+		translate: 0 14px;
+	}
+	to {
+		opacity: 1;
+		translate: 0 0;
+	}
+}
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes stripes {
+	to {
+		background-position-x: 24px, 0;
+	}
+}
+
+@keyframes shine {
+	0% {
+		transform: translateX(-120%) skewX(-20deg);
+	}
+	60%,
+	100% {
+		transform: translateX(320%) skewX(-20deg);
+	}
+}
+
+/* ------------------------------------------------------------------ base */
+
+@layer base {
+	html {
+		color-scheme: dark;
+		background: var(--color-night-950);
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		min-height: 100dvh;
+		font-family: var(--font-sans);
+		color: var(--color-night-50);
+		-webkit-tap-highlight-color: transparent;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Backdrop: a violet sky glow over a dark gradient, plus a tiled star
+	 * field. Fixed pseudo-elements rather than background-attachment: fixed,
+	 * which iOS Safari ignores. */
+	body::before,
+	body::after {
+		content: '';
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+	}
+	body::before {
+		background:
+			radial-gradient(ellipse 140% 60% at 50% -15%, rgb(139 92 246 / 0.5), transparent 65%),
+			radial-gradient(ellipse 90% 45% at 105% 100%, rgb(236 72 153 / 0.2), transparent 60%),
+			radial-gradient(ellipse 90% 45% at -5% 95%, rgb(56 189 248 / 0.16), transparent 60%),
+			linear-gradient(180deg, var(--color-night-800), var(--color-night-950) 85%);
+	}
+	body::after {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='white'%3E%3Ccircle cx='14' cy='20' r='1'/%3E%3Ccircle cx='88' cy='42' r='1.4'/%3E%3Ccircle cx='158' cy='14' r='0.8'/%3E%3Ccircle cx='46' cy='104' r='1.1'/%3E%3Ccircle cx='132' cy='128' r='1'/%3E%3Ccircle cx='22' cy='158' r='0.8'/%3E%3Ccircle cx='104' cy='166' r='1.5'/%3E%3Ccircle cx='170' cy='84' r='0.9'/%3E%3C/g%3E%3Cpath d='M64 62l2 5 5 2-5 2-2 5-2-5-5-2 5-2z' fill='white' opacity='.8'/%3E%3Cpath d='M150 156l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z' fill='white' opacity='.6'/%3E%3C/svg%3E");
+		background-size: 180px 180px;
+		opacity: 0.55;
+		mask-image: linear-gradient(180deg, black, transparent 90%);
+	}
+
+	::selection {
+		background: var(--color-gold-400);
+		color: var(--color-gold-900);
+	}
+
+	:focus-visible {
+		outline: 3px solid var(--color-gold-300);
+		outline-offset: 2px;
+	}
+}
+
+/* ------------------------------------------------------------ components */
+
+@layer components {
+	/* Outlined "sticker" text for titles: a dark stroke + drop, readable on
+	 * any background. */
+	.text-outline {
+		text-shadow:
+			0 3px 0 var(--color-night-950),
+			2px 0 0 var(--color-night-950),
+			-2px 0 0 var(--color-night-950),
+			0 2px 0 var(--color-night-950),
+			0 -2px 0 var(--color-night-950),
+			1.5px 1.5px 0 var(--color-night-950),
+			-1.5px 1.5px 0 var(--color-night-950),
+			1.5px -1.5px 0 var(--color-night-950),
+			-1.5px -1.5px 0 var(--color-night-950);
+	}
+
+	/* Panels ----------------------------------------------------------- */
+	.panel {
+		position: relative;
+		border-radius: 1.25rem;
+		border: 3px solid var(--color-night-950);
+		background: linear-gradient(180deg, var(--color-night-700) 0%, var(--color-night-800) 100%);
+		box-shadow:
+			inset 0 2px 0 rgb(255 255 255 / 0.12),
+			inset 0 -3px 0 rgb(0 0 0 / 0.25),
+			0 4px 0 var(--color-night-950),
+			0 14px 28px -10px rgb(0 0 0 / 0.65);
+	}
+
+	.panel-inset {
+		border-radius: 1rem;
+		border: 2px solid var(--color-night-950);
+		background: rgb(11 7 32 / 0.45);
+		box-shadow: inset 0 3px 0 rgb(0 0 0 / 0.25);
+	}
+
+	.panel-heading {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-family: var(--font-display);
+		font-size: 1.15rem;
+		line-height: 1.2;
+		letter-spacing: 0.01em;
+		color: var(--color-gold-300);
+		text-shadow: 0 2px 0 var(--color-night-950);
+	}
+
+	/* Title plate used on modals ("Quest complete!") */
+	.ribbon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		padding: 0.5rem 1.25rem;
+		border-radius: 0.85rem;
+		border: 3px solid var(--color-night-950);
+		background: linear-gradient(180deg, #ff7aa8, #e11d74);
+		font-family: var(--font-display);
+		font-size: 1.15rem;
+		line-height: 1;
+		color: white;
+		text-shadow: 0 2px 0 rgb(0 0 0 / 0.35);
+		box-shadow:
+			inset 0 3px 0 rgb(255 255 255 / 0.35),
+			inset 0 -4px 0 #a10f55,
+			0 4px 0 var(--color-night-950);
+	}
+
+	/* Buttons ---------------------------------------------------------- */
+	.btn {
+		--btn-top: var(--color-night-500);
+		--btn-bottom: var(--color-night-600);
+		--btn-edge: var(--color-night-800);
+		--btn-text: white;
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		min-height: 3rem;
+		padding: 0.75rem 1.25rem;
+		border-radius: 1rem;
+		border: 3px solid var(--color-night-950);
+		background: linear-gradient(180deg, var(--btn-top), var(--btn-bottom));
+		color: var(--btn-text);
+		font-family: var(--font-display);
+		font-size: 1.0625rem;
+		font-weight: 400;
+		line-height: 1;
+		letter-spacing: 0.02em;
+		text-shadow: 0 2px 0 rgb(0 0 0 / 0.3);
+		white-space: nowrap;
+		box-shadow:
+			inset 0 3px 0 rgb(255 255 255 / 0.3),
+			inset 0 -4px 0 var(--btn-edge),
+			0 4px 0 var(--color-night-950);
+		transition:
+			transform 80ms ease-out,
+			box-shadow 80ms ease-out,
+			filter 120ms;
+		cursor: pointer;
+		user-select: none;
+		touch-action: manipulation;
+	}
+	.btn:hover {
+		filter: brightness(1.08);
+	}
+	.btn:active:not(:disabled) {
+		transform: translateY(3px);
+		box-shadow:
+			inset 0 3px 0 rgb(255 255 255 / 0.3),
+			inset 0 -1px 0 var(--btn-edge),
+			0 1px 0 var(--color-night-950);
+	}
+	.btn:disabled,
+	.btn[aria-disabled='true'] {
+		filter: grayscale(0.75) brightness(0.7);
+		cursor: not-allowed;
+	}
+	.btn-gold {
+		--btn-top: var(--color-gold-300);
+		--btn-bottom: var(--color-gold-500);
+		--btn-edge: var(--color-gold-600);
+		--btn-text: var(--color-gold-900);
+		text-shadow: 0 1px 0 rgb(255 255 255 / 0.45);
+	}
+	.btn-green {
+		--btn-top: #4fdc83;
+		--btn-bottom: #179a48;
+		--btn-edge: #0d6b31;
+	}
+	.btn-blue {
+		--btn-top: #6aa8ff;
+		--btn-bottom: #2f6fe6;
+		--btn-edge: #1a44a8;
+	}
+	.btn-red {
+		--btn-top: #ff6b81;
+		--btn-bottom: #e11d48;
+		--btn-edge: #9f1239;
+	}
+	.btn-sm {
+		min-height: 2.5rem;
+		padding: 0.5rem 0.875rem;
+		border-radius: 0.8rem;
+		font-size: 0.95rem;
+	}
+	.btn-icon {
+		min-height: 2.75rem;
+		min-width: 2.75rem;
+		padding: 0;
+		border-radius: 0.9rem;
+	}
+	.btn-icon.btn-sm {
+		min-height: 2.5rem;
+		min-width: 2.5rem;
+	}
+	.btn-block {
+		width: 100%;
+	}
+
+	/* Text-style button for low-emphasis links */
+	.link {
+		font-weight: 800;
+		color: var(--color-gold-300);
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 3px;
+	}
+	.link:hover {
+		color: var(--color-gold-200);
+	}
+
+	/* Form fields ------------------------------------------------------ */
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.field-label {
+		font-size: 0.75rem;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--color-night-200);
+	}
+	.input {
+		width: 100%;
+		min-height: 3rem;
+		padding: 0.7rem 0.9rem;
+		border-radius: 0.9rem;
+		border: 3px solid var(--color-night-950);
+		background-color: rgb(11 7 32 / 0.55);
+		color: white;
+		/* >= 16px, or iOS Safari zooms the page in on focus */
+		font-size: 1rem;
+		font-weight: 700;
+		box-shadow: inset 0 3px 0 rgb(0 0 0 / 0.3);
+		transition:
+			border-color 120ms,
+			box-shadow 120ms;
+	}
+	.input::placeholder {
+		color: var(--color-night-400);
+		font-weight: 600;
+	}
+	.input:focus {
+		outline: none;
+		border-color: var(--color-gold-400);
+		box-shadow:
+			inset 0 3px 0 rgb(0 0 0 / 0.3),
+			0 0 0 3px rgb(255 205 56 / 0.3);
+	}
+	.input:disabled {
+		color: var(--color-night-300);
+		cursor: not-allowed;
+	}
+	select.input {
+		appearance: none;
+		padding-right: 2.5rem;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffe066' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 0.8rem center;
+		background-size: 1.1rem;
+	}
+	select.input option {
+		background: var(--color-night-800);
+		color: white;
+	}
+	textarea.input {
+		min-height: 6rem;
+		resize: vertical;
+	}
+	input[type='file'].input {
+		padding: 0.45rem;
+		font-size: 0.875rem;
+	}
+	input[type='file'].input::file-selector-button {
+		margin-right: 0.75rem;
+		padding: 0.45rem 0.8rem;
+		border-radius: 0.65rem;
+		border: 2px solid var(--color-night-950);
+		background: linear-gradient(180deg, var(--color-night-500), var(--color-night-600));
+		color: white;
+		font-family: var(--font-display);
+		font-size: 0.9rem;
+		cursor: pointer;
+	}
+	/* Number steppers are replaced by our own -/+ buttons where it matters. */
+	input[type='number'].input {
+		font-variant-numeric: tabular-nums;
+	}
+
+	.alert-error {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		padding: 0.65rem 0.9rem;
+		border-radius: 0.9rem;
+		border: 2px solid #9f1239;
+		background: rgb(225 29 72 / 0.2);
+		color: #ffd5dc;
+		font-size: 0.875rem;
+		font-weight: 800;
+	}
+
+	/* Chips / badges --------------------------------------------------- */
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		border: 2px solid var(--color-night-950);
+		font-size: 0.68rem;
+		font-weight: 900;
+		line-height: 1.2;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		white-space: nowrap;
+		background: var(--color-night-600);
+		color: var(--color-night-100);
+	}
+	.chip-ok {
+		background: #15803d;
+		color: #dcfce7;
+	}
+	.chip-dueSoon {
+		background: #b45309;
+		color: #fff3c4;
+	}
+	.chip-overdue {
+		background: #be123c;
+		color: #ffe4e8;
+	}
+	.chip-gold {
+		background: var(--color-gold-500);
+		color: var(--color-gold-900);
+	}
+
+	/* Resource counter (coins in the HUD, rewards on cards) */
+	.counter {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		height: 2.25rem;
+		padding: 0 0.75rem 0 0.3rem;
+		border-radius: 999px;
+		border: 3px solid var(--color-night-950);
+		background: rgb(11 7 32 / 0.65);
+		font-family: var(--font-display);
+		font-size: 1.05rem;
+		line-height: 1;
+		color: var(--color-gold-200);
+		font-variant-numeric: tabular-nums;
+		box-shadow: inset 0 2px 0 rgb(0 0 0 / 0.35);
+	}
+
+	/* Meters (XP bar, quest urgency) ---------------------------------- */
+	.meter {
+		position: relative;
+		height: 0.8rem;
+		border-radius: 999px;
+		border: 2px solid var(--color-night-950);
+		background: rgb(11 7 32 / 0.75);
+		overflow: hidden;
+		box-shadow: inset 0 2px 0 rgb(0 0 0 / 0.45);
+	}
+	.meter-fill {
+		--fill: linear-gradient(90deg, #a78bfa, #f472b6);
+		position: absolute;
+		inset: 0 auto 0 0;
+		border-radius: inherit;
+		background: var(--fill);
+		box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.22);
+		transition: width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+	.meter-fill::after {
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 4px;
+		right: 4px;
+		height: 28%;
+		border-radius: 999px;
+		background: rgb(255 255 255 / 0.5);
+	}
+	.meter-striped .meter-fill {
+		background:
+			linear-gradient(
+					-45deg,
+					rgb(255 255 255 / 0.2) 25%,
+					transparent 25% 50%,
+					rgb(255 255 255 / 0.2) 50% 75%,
+					transparent 75%
+				)
+				0 0 / 24px 24px,
+			var(--fill);
+		animation: stripes 0.8s linear infinite;
+	}
+
+	/* A moving glint across gold things (coins, primary buttons) */
+	.shine {
+		overflow: hidden;
+	}
+	.shine::after {
+		content: '';
+		position: absolute;
+		inset: -20% auto -20% 0;
+		width: 30%;
+		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+		animation: shine 3.2s ease-in-out infinite;
+		pointer-events: none;
+	}
+
+	/* Bottom tab bar --------------------------------------------------- */
+	.tabbar {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.25rem;
+		padding: 0.35rem;
+		border-radius: 1.5rem;
+		border: 3px solid var(--color-night-950);
+		background: linear-gradient(180deg, var(--color-night-700), var(--color-night-800));
+		box-shadow:
+			inset 0 2px 0 rgb(255 255 255 / 0.1),
+			0 4px 0 var(--color-night-950),
+			0 18px 36px -6px rgb(0 0 0 / 0.75);
+	}
+	.tab {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.15rem;
+		min-height: 3.6rem;
+		padding: 0.3rem 0.15rem 0.35rem;
+		border-radius: 1.1rem;
+		color: var(--color-night-300);
+		font-size: 0.7rem;
+		font-weight: 900;
+		line-height: 1.1;
+		transition: color 0.15s;
+	}
+	.tab:hover {
+		color: var(--color-night-100);
+	}
+	.tab-icon {
+		display: grid;
+		place-items: center;
+		width: 2.6rem;
+		height: 2.15rem;
+		border-radius: 0.85rem;
+		border: 3px solid transparent;
+		transition:
+			transform 0.25s cubic-bezier(0.2, 1.5, 0.4, 1),
+			background 0.2s;
+	}
+	.tab-label {
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	/* "Classement"/"Leaderboard" must still fit four-across on 320px phones */
+	@media (max-width: 359px) {
+		.tab {
+			font-size: 0.62rem;
+		}
+	}
+	.tab[aria-current='page'] {
+		color: white;
+	}
+	.tab[aria-current='page'] .tab-icon {
+		transform: translateY(-0.6rem) scale(1.12);
+		border-color: var(--color-night-950);
+		background: linear-gradient(180deg, var(--color-gold-300), var(--color-gold-500));
+		color: var(--color-gold-900);
+		box-shadow:
+			inset 0 2px 0 rgb(255 255 255 / 0.55),
+			inset 0 -3px 0 var(--color-gold-600),
+			0 3px 0 var(--color-night-950);
+	}
+
+	/* Modals / sheets -------------------------------------------------- */
+	.overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		background: rgb(6 3 20 / 0.72);
+		backdrop-filter: blur(3px);
+		animation: fade-in 0.2s ease-out both;
+	}
+	/* Bottom sheet on phones (thumb reach), centered card from sm up. */
+	.sheet {
+		position: fixed;
+		z-index: 50;
+		left: 0.5rem;
+		right: 0.5rem;
+		bottom: calc(0.5rem + env(safe-area-inset-bottom));
+		max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding: 1.5rem 1.1rem 1.1rem;
+		animation: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+	}
+	@media (min-width: 640px) {
+		.sheet {
+			left: 50%;
+			right: auto;
+			top: 50%;
+			bottom: auto;
+			width: min(26rem, calc(100vw - 2rem));
+			translate: -50% -50%;
+			padding: 1.75rem 1.5rem 1.5rem;
+		}
+	}
+}
+
+/* ------------------------------------------------- third-party theming */
+
+/* LayerChart: axis labels, grid lines and tooltips on a dark panel. */
+.lc-root-container,
+.lc-tooltip-root {
+	--color-surface-content: var(--color-night-200);
+	--color-surface-100: var(--color-night-800);
+	--color-surface-200: var(--color-night-700);
+	--color-surface-300: var(--color-night-950);
+	--color-primary: var(--color-gold-400);
+	font-family: var(--font-sans);
+	font-weight: 700;
+}
+
+/* svelte-sonner toasts as game notifications */
+html [data-sonner-toaster][data-theme='dark'] {
+	--normal-bg: var(--color-night-700);
+	--normal-border: var(--color-night-950);
+	--normal-text: white;
+	--success-bg: #14532d;
+	--success-border: var(--color-night-950);
+	--success-text: #dcfce7;
+	--error-bg: #5b0a20;
+	--error-border: var(--color-night-950);
+	--error-text: #ffe4e8;
+	--border-radius: 1rem;
+	font-family: var(--font-sans);
+}
+html [data-sonner-toaster] [data-sonner-toast] {
+	border-width: 3px;
+	font-weight: 800;
+	box-shadow:
+		inset 0 2px 0 rgb(255 255 255 / 0.12),
+		0 4px 0 var(--color-night-950),
+		0 14px 28px -8px rgb(0 0 0 / 0.7);
+}
+
+/* ------------------------------------------------------- accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	::before,
+	::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

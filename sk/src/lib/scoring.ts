@@ -107,6 +107,15 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 	return withScores.sort((a, b) => b.todoPercentage - a.todoPercentage);
 }
 
+export type QuestStatus = 'ok' | 'dueSoon' | 'overdue';
+
+/** Buckets a task's overdue-ness into the three states shown on the board and dashboard. */
+export function questStatus(todoPercentage: number): QuestStatus {
+	if (todoPercentage > 100) return 'overdue';
+	if (todoPercentage >= 70) return 'dueSoon';
+	return 'ok';
+}
+
 /** Interpolated green -> amber -> red hue for how overdue a task is. */
 export function urgencyHue(todoPercentage: number): number {
 	const clamped = Math.min(100, Math.max(0, todoPercentage));
