@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { getOrderedTasksWithScores } from '$lib/scoring';
+import { householdKind } from '$lib/householdKinds';
 import { getTimelineEvents } from '$lib/timeline';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -17,7 +18,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			sort: 'created'
 		}),
 		// the timeline is a nice-to-have: never let it break the board
-		getTimelineEvents(locals.pb, activeHousehold.id).catch(() => [])
+		getTimelineEvents(locals.pb, activeHousehold.id, householdKind(activeHousehold)).catch(() => [])
 	]);
 
 	const members = memberships

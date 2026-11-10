@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { Dialog } from 'bits-ui';
-	import { ChartColumn, House, LogOut, MessageSquare, Pause, Play, ScrollText, Settings, Swords, Trophy, User } from '@lucide/svelte';
+	import { ChartColumn, LogOut, MessageSquare, Pause, Play, Plus, ScrollText, Settings, Swords, Trophy, User } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { formatPoints, levelInfo } from '$lib/game';
+	import HouseholdSwitcher from '$lib/HouseholdSwitcher.svelte';
+	import { householdKind } from '$lib/householdKinds';
+	import { KIND_COLORS, KIND_ICONS, KIND_LABELS } from '$lib/kindUi';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import Coin from '$lib/ui/Coin.svelte';
 	import XpBar from '$lib/ui/XpBar.svelte';
@@ -15,6 +18,8 @@
 
 	const playerName = $derived(data.user?.name || data.user?.email || '');
 	const level = $derived(levelInfo(data.playerPoints).level);
+	const activeKind = $derived(householdKind(data.activeHousehold));
+	const ActiveKindIcon = $derived(KIND_ICONS[activeKind]);
 
 	const tabs = $derived([
 		{ href: '/board', label: m.nav_tasks(), icon: Swords },
@@ -72,6 +77,10 @@
 				<Pause class="size-5" strokeWidth={3} fill="currentColor" />
 			</button>
 		</div>
+
+		{#if data.activeHousehold}
+			<HouseholdSwitcher households={data.households} activeId={data.activeHousehold.id} />
+		{/if}
 	</header>
 
 	<main
@@ -119,32 +128,29 @@
 
 				{#if data.activeHousehold}
 					<section class="panel-inset flex flex-col gap-2.5 p-3">
-						<p class="field-label flex items-center gap-1.5">
-							<House class="size-3.5" strokeWidth={3} />
-							{m.menu_household()}
-						</p>
-						{#if data.households.length > 1}
-							<form method="post" action="/households/switch">
-								<select
-									name="householdId"
-									aria-label={m.menu_switch_household()}
-									onchange={(e) => e.currentTarget.form?.requestSubmit()}
-									class="input"
-								>
-									{#each data.households as household (household.id)}
-										<option value={household.id} selected={household.id === data.activeHousehold.id}>
-											{household.name}
-										</option>
-									{/each}
-								</select>
-							</form>
-						{:else}
-							<p class="truncate font-display text-xl text-white">{data.activeHousehold.name}</p>
-						{/if}
-						<a href="/households/{data.activeHousehold.id}/settings" class="btn btn-sm">
-							<Settings class="size-4" strokeWidth={3} />
-							{m.nav_settings()}
-						</a>
+						<div class="flex items-center gap-3">
+							<span
+								class="grid size-10 shrink-0 place-items-center rounded-xl border-[3px] border-night-950 text-white"
+								style="background: {KIND_COLORS[activeKind]}"
+								aria-hidden="true"
+							>
+								<ActiveKindIcon class="size-5" strokeWidth={2.75} />
+							</span>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate font-display text-xl leading-tight text-white">{data.activeHousehold.name}</span>
+								<span class="field-label">{KIND_LABELS[activeKind]()}</span>
+							</span>
+						</div>
+						<div class="grid grid-cols-2 gap-2">
+							<a href="/households/{data.activeHousehold.id}/settings" class="btn btn-sm">
+								<Settings class="size-4" strokeWidth={3} />
+								{m.nav_settings()}
+							</a>
+							<a href="/households/new" class="btn btn-sm btn-green">
+								<Plus class="size-4" strokeWidth={3.5} />
+								{m.menu_new_household()}
+							</a>
+						</div>
 					</section>
 				{/if}
 

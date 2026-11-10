@@ -1,5 +1,6 @@
 import { error, fail, redirect, type Cookies } from '@sveltejs/kit';
 import { nanoid } from 'nanoid';
+import { isHouseholdKind } from '$lib/householdKinds';
 import { getAdminClient } from '$lib/server/pbAdmin';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -55,6 +56,20 @@ export const actions: Actions = {
 			await locals.pb.collection('households').update(params.id, { name });
 		} catch {
 			return fail(403, { action: 'rename', message: "Impossible de renommer le foyer." });
+		}
+	},
+
+	changeKind: async ({ request, params, locals }) => {
+		const kind = (await request.formData()).get('kind');
+
+		if (!isHouseholdKind(kind)) {
+			return fail(400, { action: 'changeKind', message: 'Type de foyer inconnu.' });
+		}
+
+		try {
+			await locals.pb.collection('households').update(params.id, { kind });
+		} catch {
+			return fail(403, { action: 'changeKind', message: 'Impossible de changer le type du foyer.' });
 		}
 	},
 

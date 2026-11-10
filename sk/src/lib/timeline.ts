@@ -1,4 +1,5 @@
 import type PocketBase from 'pocketbase';
+import type { HouseholdKind } from '$lib/householdKinds';
 import { classifyTask, type TaskCategory } from '$lib/questCategories';
 
 export const TIMELINE_DAYS = 30;
@@ -21,7 +22,11 @@ export type TimelineEvent = {
 const MERGE_WINDOW_MS = 2 * 60 * 1000;
 
 /** Completions of the last TIMELINE_DAYS days, oldest first, one event per (shared) completion. */
-export async function getTimelineEvents(pb: PocketBase, householdId: string): Promise<TimelineEvent[]> {
+export async function getTimelineEvents(
+	pb: PocketBase,
+	householdId: string,
+	kind: HouseholdKind
+): Promise<TimelineEvent[]> {
 	const since = new Date(Date.now() - TIMELINE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 	const records = await pb.collection('records').getFullList({
 		filter: pb.filter('household = {:h} && created >= {:since}', { h: householdId, since }),
@@ -46,7 +51,7 @@ export async function getTimelineEvents(pb: PocketBase, householdId: string): Pr
 			at: record.created,
 			taskId: record.task,
 			taskName: task?.name ?? null,
-			category: task ? classifyTask(task.name, task.description ?? '') : 'other',
+			category: task ? classifyTask(task.name, task.description ?? '', kind) : 'other',
 			users: [userName],
 			points: record.score
 		};
