@@ -1,4 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { parseTaskForm } from '$lib/taskForm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -13,15 +14,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 export const actions: Actions = {
 	// Creates a new quest from the (possibly edited) copy; the original is untouched.
 	create: async ({ request, params, locals }) => {
-		const form = await request.formData();
-		const name = String(form.get('name') ?? '').trim();
-		const description = String(form.get('description') ?? '').trim();
-		const frequency = Number(form.get('frequency') ?? 1);
-		const unit = String(form.get('unit') ?? 'week');
-		const score = Number(form.get('score') ?? 1);
-		const values = { name, description, frequency, unit, score };
+		const { values, valid } = parseTaskForm(await request.formData());
 
-		if (!name || frequency <= 0 || score < 0) {
+		if (!valid) {
 			return fail(400, { message: 'Merci de vérifier les champs (nom, fréquence, points).', ...values });
 		}
 

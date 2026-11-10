@@ -3,7 +3,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Check, Copy, Flame, Minus, Pencil, Plus, Sparkles, Swords } from '@lucide/svelte';
+	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, Sparkles, Swords } from '@lucide/svelte';
 	import { questStatus, urgencyHue, type QuestStatus } from '$lib/scoring';
 	import { formatPoints } from '$lib/game';
 	import * as m from '$lib/paraglide/messages.js';
@@ -35,6 +35,9 @@
 		month: m.unit_month,
 		year: m.unit_year
 	};
+
+	// neutral violet tint for on-demand quests, outside the green -> red urgency scale
+	const ON_DEMAND_HUE = 265;
 
 	const overdueCount = $derived(data.tasks.filter((t) => questStatus(t.todoPercentage) === 'overdue').length);
 	// Mirrors the server's split in the task_done action, as a preview.
@@ -117,8 +120,8 @@
 				{@const status = questStatus(task.todoPercentage)}
 				<li
 					class="quest animate-rise"
-					data-status={status}
-					style="--hue: {urgencyHue(task.todoPercentage)}; animation-delay: {Math.min(i, 12) * 35}ms"
+					data-status={task.onDemand ? 'onDemand' : status}
+					style="--hue: {task.onDemand ? ON_DEMAND_HUE : urgencyHue(task.todoPercentage)}; animation-delay: {Math.min(i, 12) * 35}ms"
 				>
 					<button type="button" class="quest-main" onclick={() => openTask(task)}>
 						<span class="quest-emblem text-outline font-display" aria-hidden="true">
@@ -131,14 +134,20 @@
 						<span class="flex min-w-0 flex-1 flex-col gap-1.5">
 							<span class="quest-name">{task.name}</span>
 							<span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-								<span class="chip chip-{status}">{statusLabels[status]()}</span>
-								<span class="text-xs font-extrabold text-night-300">
-									{m.board_recurrence({ frequency: task.frequency, unit: unitLabels[task.unit]?.() ?? task.unit })}
+								{#if task.onDemand}
+									<span class="chip chip-onDemand"><Hand class="size-3" strokeWidth={3} />{m.board_on_demand()}</span>
+								{:else}
+									<span class="chip chip-{status}">{statusLabels[status]()}</span>
+									<span class="text-xs font-extrabold text-night-300">
+										{m.board_recurrence({ frequency: task.frequency, unit: unitLabels[task.unit]?.() ?? task.unit })}
+									</span>
+								{/if}
+							</span>
+							{#if !task.onDemand}
+								<span class="meter mt-0.5 {status === 'overdue' ? 'meter-striped' : ''}" aria-hidden="true">
+									<span class="meter-fill" style="width: {Math.min(100, Math.max(0, task.todoPercentage))}%"></span>
 								</span>
-							</span>
-							<span class="meter mt-0.5 {status === 'overdue' ? 'meter-striped' : ''}" aria-hidden="true">
-								<span class="meter-fill" style="width: {Math.min(100, Math.max(0, task.todoPercentage))}%"></span>
-							</span>
+							{/if}
 						</span>
 
 						<span class="flex shrink-0 flex-col items-center gap-0.5 pl-1">

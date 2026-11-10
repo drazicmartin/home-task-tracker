@@ -504,6 +504,10 @@
 		background: #be123c;
 		color: #ffe4e8;
 	}
+	.chip-onDemand {
+		background: #6d28d9;
+		color: #ede9fe;
+	}
 	.chip-gold {
 		background: var(--color-gold-500);
 		color: var(--color-gold-900);

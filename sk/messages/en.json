@@ -219,5 +219,8 @@
 	"task_duplicate_title": "Duplicate quest",
 	"task_duplicate_create": "Create copy",
 	"task_duplicate_name": "{name} (copy)",
-	"board_duplicate_aria": "Duplicate {name}"
+	"board_duplicate_aria": "Duplicate {name}",
+	"task_form_on_demand": "On demand",
+	"task_form_on_demand_hint": "No frequency: the quest is never overdue, just do it whenever it's needed.",
+	"board_on_demand": "On demand"
 }

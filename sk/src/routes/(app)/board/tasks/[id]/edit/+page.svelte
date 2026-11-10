@@ -24,14 +24,15 @@
 	<section class="panel p-4 sm:p-5">
 		<TaskForm
 			action="?/update"
-			initial={form
-				? { name: form.name, description: form.description, frequency: form.frequency, unit: form.unit, score: form.score }
+			initial={form?.name !== undefined
+				? form
 				: {
 						name: data.task.name,
 						description: data.task.description,
 						frequency: data.task.frequency,
 						unit: data.task.unit,
-						score: data.task.score
+						score: data.task.score,
+						on_demand: data.task.on_demand
 					}}
 			error={form?.message}
 		/>

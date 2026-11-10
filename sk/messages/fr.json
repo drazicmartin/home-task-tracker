@@ -219,5 +219,8 @@
 	"task_duplicate_title": "Dupliquer la quête",
 	"task_duplicate_create": "Créer la copie",
 	"task_duplicate_name": "{name} (copie)",
-	"board_duplicate_aria": "Dupliquer {name}"
+	"board_duplicate_aria": "Dupliquer {name}",
+	"task_form_on_demand": "À la demande",
+	"task_form_on_demand_hint": "Pas de fréquence : la quête n'est jamais en retard, on la fait quand il le faut.",
+	"board_on_demand": "À la demande"
 }
