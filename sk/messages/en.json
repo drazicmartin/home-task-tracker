@@ -241,5 +241,15 @@
 	"filter_sort_name": "Name (A–Z)",
 	"filter_reset": "Clear filters",
 	"filter_results": "{shown} of {total} quests",
-	"filter_no_match": "No quest matches this search or these filters."
+	"filter_no_match": "No quest matches this search or these filters.",
+	"catalog_cat_other": "Other",
+	"timeline_title": "Last 30 days",
+	"timeline_summary": "{count} quest(s) done",
+	"timeline_empty": "No quest completed in the last 30 days yet.",
+	"timeline_hint": "Tap an icon to see who did what.",
+	"timeline_deleted_quest": "Deleted quest",
+	"timeline_more": "{count} more quests this day",
+	"timeline_close": "Close",
+	"timeline_legend": "Quest types",
+	"timeline_event_aria": "{name}, by {users}, {date}"
 }

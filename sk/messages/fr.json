@@ -241,5 +241,15 @@
 	"filter_sort_name": "Nom (A–Z)",
 	"filter_reset": "Effacer les filtres",
 	"filter_results": "{shown} quête(s) sur {total}",
-	"filter_no_match": "Aucune quête ne correspond à cette recherche ou à ces filtres."
+	"filter_no_match": "Aucune quête ne correspond à cette recherche ou à ces filtres.",
+	"catalog_cat_other": "Autre",
+	"timeline_title": "Les 30 derniers jours",
+	"timeline_summary": "{count} quête(s) faite(s)",
+	"timeline_empty": "Aucune quête accomplie ces 30 derniers jours.",
+	"timeline_hint": "Touchez une icône pour voir qui a fait quoi.",
+	"timeline_deleted_quest": "Quête supprimée",
+	"timeline_more": "{count} quêtes de plus ce jour-là",
+	"timeline_close": "Fermer",
+	"timeline_legend": "Types de quêtes",
+	"timeline_event_aria": "{name}, par {users}, {date}"
 }

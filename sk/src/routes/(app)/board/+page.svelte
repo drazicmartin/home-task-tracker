@@ -5,6 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, SearchX, Sparkles, Swords } from '@lucide/svelte';
 	import QuestFilterBar from '$lib/QuestFilterBar.svelte';
+	import QuestTimeline from '$lib/QuestTimeline.svelte';
 	import { emptyFilters, filterQuests, isFiltering, type QuestFilters } from '$lib/questFilters';
 	import { questStatus, urgencyHue, type QuestStatus } from '$lib/scoring';
 	import { formatPoints } from '$lib/game';
@@ -130,6 +131,10 @@
 			</a>
 		{/snippet}
 	</PageHeader>
+
+	{#if data.tasks.length > 0 || data.timeline.length > 0}
+		<QuestTimeline events={data.timeline} />
+	{/if}
 
 	{#if data.tasks.length === 0}
 		<EmptyState icon={Swords} message={m.board_empty()}>

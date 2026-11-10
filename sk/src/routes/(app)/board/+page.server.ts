@@ -1,27 +1,30 @@
 import { fail } from '@sveltejs/kit';
 import { getOrderedTasksWithScores } from '$lib/scoring';
+import { getTimelineEvents } from '$lib/timeline';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { activeHousehold } = await parent();
 	if (!activeHousehold) {
-		return { tasks: [], members: [] };
+		return { tasks: [], members: [], timeline: [] };
 	}
 
-	const [tasks, memberships] = await Promise.all([
+	const [tasks, memberships, timeline] = await Promise.all([
 		getOrderedTasksWithScores(locals.pb, activeHousehold.id),
 		locals.pb.collection('household_members').getFullList({
 			filter: locals.pb.filter('household = {:h}', { h: activeHousehold.id }),
 			expand: 'user',
 			sort: 'created'
-		})
+		}),
+		// the timeline is a nice-to-have: never let it break the board
+		getTimelineEvents(locals.pb, activeHousehold.id).catch(() => [])
 	]);
 
 	const members = memberships
 		.map((m) => m.expand?.user)
 		.filter((u): u is NonNullable<typeof u> => Boolean(u));
 
-	return { tasks, members };
+	return { tasks, members, timeline };
 };
 
 export const actions: Actions = {
