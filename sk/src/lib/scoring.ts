@@ -71,6 +71,9 @@ export type TaskWithScore = {
 	score: number;
 	frequency: number;
 	unit: string;
+	/** no recurrence: never due or overdue, always listed after recurring quests */
+	onDemand: boolean;
+	/** always 0 for on-demand quests */
 	todoPercentage: number;
 };
 
@@ -82,6 +85,19 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 
 	const withScores = await Promise.all(
 		tasks.map(async (task) => {
+			if (task.on_demand) {
+				return {
+					id: task.id,
+					name: task.name,
+					description: task.description,
+					score: task.score,
+					frequency: task.frequency,
+					unit: task.unit,
+					onDemand: true,
+					todoPercentage: 0
+				} satisfies TaskWithScore;
+			}
+
 			let since = task.created;
 			try {
 				const lastRecord = await pb
@@ -99,12 +115,15 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 				score: task.score,
 				frequency: task.frequency,
 				unit: task.unit,
+				onDemand: false,
 				todoPercentage: getTodoPercentage(task.frequency, task.unit, since)
 			} satisfies TaskWithScore;
 		})
 	);
 
-	return withScores.sort((a, b) => b.todoPercentage - a.todoPercentage);
+	return withScores.sort(
+		(a, b) => Number(a.onDemand) - Number(b.onDemand) || b.todoPercentage - a.todoPercentage
+	);
 }
 
 export type QuestStatus = 'ok' | 'dueSoon' | 'overdue';

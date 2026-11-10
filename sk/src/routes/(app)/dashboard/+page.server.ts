@@ -22,6 +22,7 @@ function bucketTrend(records: Awaited<ReturnType<typeof getHouseholdRecords>>, w
 function bucketHealth(tasks: Awaited<ReturnType<typeof getOrderedTasksWithScores>>): Health {
 	const health: Health = { ok: 0, dueSoon: 0, overdue: 0 };
 	for (const task of tasks) {
+		if (task.onDemand) continue; // no due date, so no health to report
 		health[questStatus(task.todoPercentage)] += 1;
 	}
 	return health;

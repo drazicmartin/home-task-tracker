@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ChevronLeft, Pencil, Trash } from '@lucide/svelte';
+	import { ChevronLeft, Copy, Pencil, Trash } from '@lucide/svelte';
 	import TaskForm from '$lib/TaskForm.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
@@ -13,19 +13,26 @@
 	<a href="/board" class="btn btn-sm self-start">
 		<ChevronLeft class="size-4" strokeWidth={3.5} />{m.back_to_board()}
 	</a>
-	<PageHeader title={m.task_edit_title()} eyebrow={data.task.name} icon={Pencil} />
+	<PageHeader title={m.task_edit_title()} eyebrow={data.task.name} icon={Pencil}>
+		{#snippet actions()}
+			<a href="/board/tasks/{data.task.id}/duplicate" class="btn btn-sm">
+				<Copy class="size-4" strokeWidth={3} />{m.task_duplicate()}
+			</a>
+		{/snippet}
+	</PageHeader>
 
 	<section class="panel p-4 sm:p-5">
 		<TaskForm
 			action="?/update"
-			initial={form
-				? { name: form.name, description: form.description, frequency: form.frequency, unit: form.unit, score: form.score }
+			initial={form?.name !== undefined
+				? form
 				: {
 						name: data.task.name,
 						description: data.task.description,
 						frequency: data.task.frequency,
 						unit: data.task.unit,
-						score: data.task.score
+						score: data.task.score,
+						on_demand: data.task.on_demand
 					}}
 			error={form?.message}
 		/>

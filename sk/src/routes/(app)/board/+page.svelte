@@ -3,7 +3,10 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Check, Flame, Minus, Pencil, Plus, Sparkles, Swords } from '@lucide/svelte';
+	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, SearchX, Sparkles, Swords } from '@lucide/svelte';
+	import QuestFilterBar from '$lib/QuestFilterBar.svelte';
+	import QuestTimeline from '$lib/QuestTimeline.svelte';
+	import { emptyFilters, filterQuests, isFiltering, type QuestFilters } from '$lib/questFilters';
 	import { questStatus, urgencyHue, type QuestStatus } from '$lib/scoring';
 	import { formatPoints } from '$lib/game';
 	import * as m from '$lib/paraglide/messages.js';
@@ -35,6 +38,40 @@
 		month: m.unit_month,
 		year: m.unit_year
 	};
+
+	// Search/filters live only in this browser tab: sessionStorage keeps them
+	// while hopping to a quest's edit page and back, and is optional (private
+	// mode, blocked storage) so every access is guarded.
+	const FILTERS_KEY = 'board-filters';
+	function loadFilters(): QuestFilters {
+		try {
+			const saved = sessionStorage.getItem(FILTERS_KEY);
+			if (saved) return { ...emptyFilters(), ...JSON.parse(saved) };
+		} catch {
+			// ignore unreadable / unavailable storage
+		}
+		return emptyFilters();
+	}
+	// SSR and hydration render unfiltered; saved filters are applied right after.
+	let filters = $state<QuestFilters>(emptyFilters());
+	let filtersRestored = $state(false);
+	$effect(() => {
+		filters = loadFilters();
+		filtersRestored = true;
+	});
+	$effect(() => {
+		const snapshot = JSON.stringify(filters); // read first so every field is tracked
+		if (!filtersRestored) return;
+		try {
+			sessionStorage.setItem(FILTERS_KEY, snapshot);
+		} catch {
+			// ignore
+		}
+	});
+	const visibleTasks = $derived(filterQuests(data.tasks, filters));
+
+	// neutral violet tint for on-demand quests, outside the green -> red urgency scale
+	const ON_DEMAND_HUE = 265;
 
 	const overdueCount = $derived(data.tasks.filter((t) => questStatus(t.todoPercentage) === 'overdue').length);
 	// Mirrors the server's split in the task_done action, as a preview.
@@ -95,6 +132,10 @@
 		{/snippet}
 	</PageHeader>
 
+	{#if data.tasks.length > 0 || data.timeline.length > 0}
+		<QuestTimeline events={data.timeline} />
+	{/if}
+
 	{#if data.tasks.length === 0}
 		<EmptyState icon={Swords} message={m.board_empty()}>
 			<a href="/board/tasks/new" class="btn btn-gold">
@@ -111,14 +152,24 @@
 			{/if}
 		</div>
 
+		<QuestFilterBar bind:filters shown={visibleTasks.length} total={data.tasks.length} />
+
+		{#if visibleTasks.length === 0 && isFiltering(filters)}
+			<EmptyState icon={SearchX} message={m.filter_no_match()}>
+				<button type="button" class="btn" onclick={() => (filters = { ...emptyFilters(), sort: filters.sort })}>
+					{m.filter_reset()}
+				</button>
+			</EmptyState>
+		{/if}
+
 		<!-- one column on phones; cards need ~340px, so two columns only from md -->
 		<ul class="grid grid-cols-1 gap-3 md:grid-cols-2">
-			{#each data.tasks as task, i (task.id)}
+			{#each visibleTasks as task, i (task.id)}
 				{@const status = questStatus(task.todoPercentage)}
 				<li
 					class="quest animate-rise"
-					data-status={status}
-					style="--hue: {urgencyHue(task.todoPercentage)}; animation-delay: {Math.min(i, 12) * 35}ms"
+					data-status={task.onDemand ? 'onDemand' : status}
+					style="--hue: {task.onDemand ? ON_DEMAND_HUE : urgencyHue(task.todoPercentage)}; animation-delay: {Math.min(i, 12) * 35}ms"
 				>
 					<button type="button" class="quest-main" onclick={() => openTask(task)}>
 						<span class="quest-emblem text-outline font-display" aria-hidden="true">
@@ -131,14 +182,20 @@
 						<span class="flex min-w-0 flex-1 flex-col gap-1.5">
 							<span class="quest-name">{task.name}</span>
 							<span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-								<span class="chip chip-{status}">{statusLabels[status]()}</span>
-								<span class="text-xs font-extrabold text-night-300">
-									{m.board_recurrence({ frequency: task.frequency, unit: unitLabels[task.unit]?.() ?? task.unit })}
+								{#if task.onDemand}
+									<span class="chip chip-onDemand"><Hand class="size-3" strokeWidth={3} />{m.board_on_demand()}</span>
+								{:else}
+									<span class="chip chip-{status}">{statusLabels[status]()}</span>
+									<span class="text-xs font-extrabold text-night-300">
+										{m.board_recurrence({ frequency: task.frequency, unit: unitLabels[task.unit]?.() ?? task.unit })}
+									</span>
+								{/if}
+							</span>
+							{#if !task.onDemand}
+								<span class="meter mt-0.5 {status === 'overdue' ? 'meter-striped' : ''}" aria-hidden="true">
+									<span class="meter-fill" style="width: {Math.min(100, Math.max(0, task.todoPercentage))}%"></span>
 								</span>
-							</span>
-							<span class="meter mt-0.5 {status === 'overdue' ? 'meter-striped' : ''}" aria-hidden="true">
-								<span class="meter-fill" style="width: {Math.min(100, Math.max(0, task.todoPercentage))}%"></span>
-							</span>
+							{/if}
 						</span>
 
 						<span class="flex shrink-0 flex-col items-center gap-0.5 pl-1">
@@ -150,9 +207,18 @@
 						</span>
 					</button>
 
-					<a href="/board/tasks/{task.id}/edit" class="quest-edit" aria-label={m.board_edit_aria({ name: task.name })}>
-						<Pencil class="size-4" strokeWidth={3} />
-					</a>
+					<span class="quest-tools">
+						<a href="/board/tasks/{task.id}/edit" class="quest-tool" aria-label={m.board_edit_aria({ name: task.name })}>
+							<Pencil class="size-4" strokeWidth={3} />
+						</a>
+						<a
+							href="/board/tasks/{task.id}/duplicate"
+							class="quest-tool"
+							aria-label={m.board_duplicate_aria({ name: task.name })}
+						>
+							<Copy class="size-4" strokeWidth={3} />
+						</a>
+					</span>
 				</li>
 			{/each}
 		</ul>
@@ -372,24 +438,34 @@
 		--fill: linear-gradient(90deg, hsl(var(--hue) 80% 42%), hsl(var(--hue) 90% 58%));
 	}
 
-	.quest-edit {
-		display: grid;
-		place-items: center;
+	/* Right column: edit (top) and duplicate (bottom) stacked. */
+	.quest-tools {
+		display: flex;
+		flex-direction: column;
 		flex-shrink: 0;
 		width: 3rem;
 		border-left: 3px solid var(--color-night-950);
 		border-radius: 0 1.05rem 1.05rem 0;
+		overflow: hidden;
 		background: rgb(11 7 32 / 0.3);
+	}
+	.quest-tool {
+		display: grid;
+		flex: 1;
+		place-items: center;
 		color: var(--color-night-300);
 		transition:
 			color 0.15s,
 			background 0.15s;
 	}
-	.quest-edit:hover {
+	.quest-tool + .quest-tool {
+		border-top: 3px solid var(--color-night-950);
+	}
+	.quest-tool:hover {
 		color: white;
 		background: rgb(11 7 32 / 0.5);
 	}
-	.quest-edit:focus-visible {
+	.quest-tool:focus-visible {
 		outline-offset: -3px;
 	}
 
@@ -408,7 +484,7 @@
 		.quest-name {
 			font-size: 1.05rem;
 		}
-		.quest-edit {
+		.quest-tools {
 			width: 2.6rem;
 		}
 	}

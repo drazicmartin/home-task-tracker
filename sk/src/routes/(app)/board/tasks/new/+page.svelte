@@ -141,15 +141,7 @@
 		<h2 class="panel-heading mb-3"><PenLine class="size-5" strokeWidth={3} />{m.task_new_custom_heading()}</h2>
 		<TaskForm
 			action="?/create"
-			initial={typeof form?.name === 'string'
-				? {
-						name: form.name,
-						description: form.description ?? '',
-						frequency: form.frequency ?? 1,
-						unit: form.unit ?? 'week',
-						score: form.score ?? 1
-					}
-				: undefined}
+			initial={form?.name !== undefined ? form : undefined}
 			error={form?.message}
 			submitLabel={m.task_new_create()}
 		/>
