@@ -24,10 +24,19 @@ Stack:
   rest of the household
 - Optional "Continue with Authentik" SSO login (see below)
 - French and English UI (French by default), switchable per-account
-- Built-in quest catalogue (dishes, vacuuming, windows, car, cat litter...)
-  to add several common chores at once, with points on one consistent scale:
-  about 1 point per 5 minutes of effort, +1/+2 for unpleasant chores
-  (`sk/src/lib/questCatalog.ts`)
+- Several households per account, switched in one tap from the row of
+  household pills under the HUD (you stay on the same screen), with a "+"
+  to create or join another one
+- Household types — house chores, habits, fitness & health, learning —
+  each with its own preset quest catalogue and categories
+  (`sk/src/lib/householdKinds.ts`); picked when creating the household,
+  changeable by the owner in its settings
+- Built-in quest catalogues (dishes, vacuuming, cat litter... / water, sleep,
+  reading... / running, strength, yoga... / languages, homework, an
+  instrument...) to add several common quests at once — the household's own
+  type is shown first, the others are a tab away — with points on one
+  consistent scale: about 1 point per 5 minutes of effort, +1/+2 for
+  unpleasant ones (`sk/src/lib/questCatalog.ts`)
 - Leave a household (the owner hands ownership to the next member) or
   delete it entirely, from the household settings
 - "Message the developer" inbox: users send bug reports / ideas from the

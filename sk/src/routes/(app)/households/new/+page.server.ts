@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { DEFAULT_KIND, isHouseholdKind } from '$lib/householdKinds';
 import { getAdminClient } from '$lib/server/pbAdmin';
 import type { Actions } from './$types';
 
@@ -8,15 +9,18 @@ export const actions: Actions = {
 	create: async ({ request, locals, cookies }) => {
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
+		const rawKind = form.get('kind');
+		const kind = isHouseholdKind(rawKind) ? rawKind : DEFAULT_KIND;
 
 		if (!name) {
-			return fail(400, { action: 'create', message: 'Merci de donner un nom à votre foyer.', name });
+			return fail(400, { action: 'create', message: 'Merci de donner un nom à votre foyer.', name, kind });
 		}
 
 		const pbAdmin = await getAdminClient();
 
 		const household = await pbAdmin.collection('households').create({
 			name,
+			kind,
 			owner: locals.user!.id
 		});
 
@@ -27,11 +31,12 @@ export const actions: Actions = {
 			});
 		} catch (error) {
 			await pbAdmin.collection('households').delete(household.id).catch(() => {});
-			return fail(500, { action: 'create', message: 'Impossible de créer le foyer, réessayez.', name });
+			return fail(500, { action: 'create', message: 'Impossible de créer le foyer, réessayez.', name, kind });
 		}
 
 		cookies.set(ACTIVE_HOUSEHOLD_COOKIE, household.id, { path: '/', maxAge: 60 * 60 * 24 * 365 });
-		redirect(303, '/board');
+		// straight to this kind's preset catalogue, to fill the new board in a few taps
+		redirect(303, '/board/tasks/new');
 	},
 
 	join: async ({ request }) => {

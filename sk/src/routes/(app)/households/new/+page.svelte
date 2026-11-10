@@ -1,16 +1,35 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Castle, DoorOpen, Sparkles, TriangleAlert } from '@lucide/svelte';
+	import { Castle, ChevronLeft, DoorOpen, Sparkles, TriangleAlert } from '@lucide/svelte';
+	import KindPicker from '$lib/KindPicker.svelte';
+	import { householdKind, type HouseholdKind } from '$lib/householdKinds';
 	import * as m from '$lib/paraglide/messages.js';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { form }: { form: ActionData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	// creating an additional household (vs the very first one after signup)
+	const another = $derived(data.households.length > 0);
+	let kind = $state<HouseholdKind>('chores');
+	// keep the choice when the server sends the form back with an error
+	$effect.pre(() => {
+		if (form?.action === 'create' && form.kind) kind = householdKind(form.kind);
+	});
 </script>
 
-<div class="mx-auto flex max-w-md flex-col gap-5 py-4">
+<div class="mx-auto flex max-w-xl flex-col gap-5 py-4">
+	{#if another}
+		<a href="/board" class="btn btn-sm self-start">
+			<ChevronLeft class="size-4" strokeWidth={3.5} />{m.back_to_board()}
+		</a>
+	{/if}
 	<div class="flex flex-col items-center gap-2 text-center">
-		<span class="ribbon text-2xl"><Sparkles class="size-5" strokeWidth={3} />{m.households_new_title()}</span>
-		<p class="mt-2 font-bold text-night-200">{m.households_new_subtitle()}</p>
+		<span class="ribbon text-2xl">
+			<Sparkles class="size-5" strokeWidth={3} />{another ? m.households_new_title_more() : m.households_new_title()}
+		</span>
+		<p class="mt-2 font-bold text-night-200">
+			{another ? m.households_new_subtitle_more() : m.households_new_subtitle()}
+		</p>
 	</div>
 
 	<section class="panel p-4 sm:p-5">
@@ -30,6 +49,11 @@
 					class="input"
 				/>
 			</label>
+			<fieldset class="flex flex-col gap-2">
+				<legend class="field-label mb-1">{m.kind_label()}</legend>
+				<p class="mb-1 text-sm font-bold text-night-300">{m.households_new_kind_hint()}</p>
+				<KindPicker bind:value={kind} />
+			</fieldset>
 			<button type="submit" class="btn btn-gold btn-block shine">{m.households_new_create_button()}</button>
 		</form>
 	</section>

@@ -4,7 +4,10 @@
 	import TaskForm from '$lib/TaskForm.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime';
-	import { QUEST_CATALOG, QUEST_CATEGORIES, localize, questScore, type QuestCategory } from '$lib/questCatalog';
+	import { HOUSEHOLD_KINDS, householdKind, type HouseholdKind } from '$lib/householdKinds';
+	import { CATEGORY_COLORS } from '$lib/questCategories';
+	import { CATEGORY_ICONS, CATEGORY_LABELS, KIND_COLORS, KIND_ICONS, KIND_LABELS } from '$lib/kindUi';
+	import { QUEST_CATALOG, catalogFor, localize, questScore } from '$lib/questCatalog';
 	import Coin from '$lib/ui/Coin.svelte';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -16,15 +19,14 @@
 	let selected = $state<string[]>([]);
 	let submitting = $state(false);
 
-	const categoryLabels: Record<QuestCategory, () => string> = {
-		kitchen: m.catalog_cat_kitchen,
-		floors: m.catalog_cat_floors,
-		bathroom: m.catalog_cat_bathroom,
-		laundry: m.catalog_cat_laundry,
-		pets: m.catalog_cat_pets,
-		outdoor: m.catalog_cat_outdoor,
-		errands: m.catalog_cat_errands
-	};
+	// the household's own kind first, then the other catalogues
+	const ownKind = $derived(householdKind(data.activeHousehold));
+	const kinds = $derived([ownKind, ...HOUSEHOLD_KINDS.filter((k) => k !== ownKind)]);
+	let catalogKind = $state<HouseholdKind>('chores');
+	$effect.pre(() => {
+		catalogKind = ownKind;
+	});
+
 	const unitLabels: Record<string, () => string> = {
 		day: m.unit_day,
 		week: m.unit_week,
@@ -34,9 +36,9 @@
 
 	const existing = $derived(new Set(data.existingNames));
 	const groups = $derived(
-		QUEST_CATEGORIES.map((category) => ({
+		catalogFor(catalogKind).map(({ category, quests }) => ({
 			category,
-			quests: QUEST_CATALOG.filter((q) => q.category === category).map((q) => ({
+			quests: quests.map((q) => ({
 				...q,
 				label: localize(q.name, locale),
 				text: localize(q.description, locale),
@@ -45,6 +47,14 @@
 			}))
 		}))
 	);
+	// managed by hand rather than bind:group, which would drop the ticks of a
+	// catalogue tab as soon as its checkboxes unmount
+	function toggle(id: string, on: boolean) {
+		selected = on ? [...selected, id] : selected.filter((s) => s !== id);
+	}
+
+	// ticked quests of the catalogues not shown right now still have to be posted
+	const hiddenSelected = $derived(selected.filter((id) => QUEST_CATALOG.find((q) => q.id === id)?.kind !== catalogKind));
 	const selectedPoints = $derived(
 		QUEST_CATALOG.filter((q) => selected.includes(q.id)).reduce((sum, q) => sum + questScore(q), 0)
 	);
@@ -77,9 +87,41 @@
 				<p class="alert-error" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.catalogMessage}</p>
 			{/if}
 
+			<div role="radiogroup" aria-label={m.task_new_catalog_kinds()} class="kinds -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+				{#each kinds as kind (kind)}
+					{@const Icon = KIND_ICONS[kind]}
+					<label class="kind-tab">
+						<input type="radio" name="catalog_kind" value={kind} bind:group={catalogKind} class="sr-only" />
+						<span class="kind-icon" style="--c: {KIND_COLORS[kind]}" aria-hidden="true">
+							<Icon class="size-3.5" strokeWidth={3} />
+						</span>
+						<span class="flex flex-col leading-tight">
+							<span>{KIND_LABELS[kind]()}</span>
+							{#if kind === ownKind}
+								<span class="text-[0.65rem] tracking-wider uppercase opacity-75">{m.task_new_catalog_this_household()}</span>
+							{/if}
+						</span>
+					</label>
+				{/each}
+			</div>
+
+			{#each hiddenSelected as id (id)}
+				<input type="hidden" name="quest" value={id} />
+			{/each}
+
 			{#each groups as group (group.category)}
+				{@const CategoryIcon = CATEGORY_ICONS[group.category]}
 				<fieldset class="flex flex-col gap-2">
-					<legend class="field-label mb-2">{categoryLabels[group.category]()}</legend>
+					<legend class="field-label mb-2 flex items-center gap-1.5">
+						<span
+							class="grid size-5 place-items-center rounded-md border-2 border-night-950 text-white"
+							style="background: {CATEGORY_COLORS[group.category]}"
+							aria-hidden="true"
+						>
+							<CategoryIcon class="size-3" strokeWidth={3} />
+						</span>
+						{CATEGORY_LABELS[group.category]()}
+					</legend>
 					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
 						{#each group.quests as quest (quest.id)}
 							<label
@@ -89,7 +131,8 @@
 									type="checkbox"
 									name="quest"
 									value={quest.id}
-									bind:group={selected}
+									checked={selected.includes(quest.id)}
+									onchange={(e) => toggle(quest.id, e.currentTarget.checked)}
 									disabled={quest.alreadyAdded}
 									class="peer sr-only"
 								/>
@@ -147,3 +190,46 @@
 		/>
 	</section>
 </div>
+
+<style>
+	.kinds {
+		scrollbar-width: none;
+	}
+	.kinds::-webkit-scrollbar {
+		display: none;
+	}
+	.kind-tab {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+		border-radius: 1rem;
+		border: 2px solid var(--color-night-950);
+		background: var(--color-night-800);
+		color: var(--color-night-200);
+		font-weight: 900;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+	.kind-tab:has(:checked) {
+		background: linear-gradient(180deg, var(--color-gold-300), var(--color-gold-500));
+		color: var(--color-gold-900);
+		box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.5);
+	}
+	.kind-tab:has(:focus-visible) {
+		outline: 3px solid var(--color-gold-300);
+		outline-offset: 2px;
+	}
+	.kind-icon {
+		display: grid;
+		place-items: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		flex-shrink: 0;
+		border-radius: 0.6rem;
+		border: 2px solid var(--color-night-950);
+		background: var(--c);
+		color: white;
+	}
+</style>

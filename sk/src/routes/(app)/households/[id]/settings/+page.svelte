@@ -4,6 +4,9 @@
 	import { toast } from 'svelte-sonner';
 	import { ChevronLeft, Copy, Crown, DoorOpen, Link, Plus, Settings, Skull, Trash, TriangleAlert, Users, X } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import KindPicker from '$lib/KindPicker.svelte';
+	import { householdKind, type HouseholdKind } from '$lib/householdKinds';
+	import { KIND_ICONS } from '$lib/kindUi';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -20,6 +23,14 @@
 	}
 
 	let confirmName = $state('');
+
+	const savedKind = $derived(householdKind(data.household));
+	let kind = $state<HouseholdKind>('chores');
+	// follow the saved value (initial load, after saving, or another household's settings)
+	$effect.pre(() => {
+		kind = savedKind;
+	});
+	const KindIcon = $derived(KIND_ICONS[kind]);
 
 	// who inherits the household if the owner leaves (oldest other member)
 	const successor = $derived(data.members.find((member) => member.user.id !== data.household.owner)?.user);
@@ -47,6 +58,20 @@
 			/>
 			{#if data.isOwner}
 				<button type="submit" class="btn btn-gold">{m.settings_rename()}</button>
+			{/if}
+		</form>
+	</section>
+
+	<section class="panel p-4 sm:p-5">
+		<h2 class="panel-heading"><KindIcon class="size-5" strokeWidth={3} />{m.kind_label()}</h2>
+		<p class="mt-1.5 text-sm font-bold text-night-200">{m.settings_kind_hint()}</p>
+		{#if form?.action === 'changeKind' && form?.message}
+			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
+		{/if}
+		<form method="post" action="?/changeKind" use:enhance class="mt-3 flex flex-col gap-3">
+			<KindPicker bind:value={kind} disabled={!data.isOwner} />
+			{#if data.isOwner}
+				<button type="submit" class="btn btn-gold btn-block" disabled={kind === savedKind}>{m.settings_kind_save()}</button>
 			{/if}
 		</form>
 	</section>

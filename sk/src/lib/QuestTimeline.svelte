@@ -1,20 +1,9 @@
 <script lang="ts">
-	import {
-		Bath,
-		CalendarDays,
-		PawPrint,
-		Shirt,
-		ShoppingCart,
-		SprayCan,
-		Sprout,
-		Star,
-		UtensilsCrossed,
-		X,
-		type LucideIcon
-	} from '@lucide/svelte';
+	import { CalendarDays, X } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { CATEGORY_COLORS, TASK_CATEGORIES, type TaskCategory } from '$lib/questCategories';
+	import { CATEGORY_ICONS as ICONS, CATEGORY_LABELS as LABELS } from '$lib/kindUi';
 	import { TIMELINE_DAYS, type TimelineEvent } from '$lib/timeline';
 	import { formatPoints } from '$lib/game';
 	import Coin from '$lib/ui/Coin.svelte';
@@ -23,27 +12,6 @@
 
 	/** Bubbles drawn per day before collapsing the rest into "+N". */
 	const MAX_PER_DAY = 3;
-
-	const ICONS: Record<TaskCategory, LucideIcon> = {
-		kitchen: UtensilsCrossed,
-		floors: SprayCan,
-		bathroom: Bath,
-		laundry: Shirt,
-		pets: PawPrint,
-		outdoor: Sprout,
-		errands: ShoppingCart,
-		other: Star
-	};
-	const LABELS: Record<TaskCategory, () => string> = {
-		kitchen: m.catalog_cat_kitchen,
-		floors: m.catalog_cat_floors,
-		bathroom: m.catalog_cat_bathroom,
-		laundry: m.catalog_cat_laundry,
-		pets: m.catalog_cat_pets,
-		outdoor: m.catalog_cat_outdoor,
-		errands: m.catalog_cat_errands,
-		other: m.catalog_cat_other
-	};
 
 	const locale = getLocale();
 	const fmtMonth = new Intl.DateTimeFormat(locale, { month: 'short' });
