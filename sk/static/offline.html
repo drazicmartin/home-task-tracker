@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="theme-color" content="#150f33" />
+		<meta name="color-scheme" content="dark" />
+		<title>Hors ligne · Home Task Tracker</title>
+		<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+		<style>
+			:root {
+				color-scheme: dark;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100dvh;
+				display: grid;
+				place-items: center;
+				padding: 24px 16px;
+				background: linear-gradient(180deg, #221b4f, #0b0720 85%) fixed;
+				color: #f3f0ff;
+				font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+				text-align: center;
+			}
+			main {
+				max-width: 22rem;
+				display: grid;
+				justify-items: center;
+				gap: 12px;
+			}
+			img {
+				width: 96px;
+				height: 96px;
+				rotate: -6deg;
+			}
+			h1 {
+				margin: 8px 0 0;
+				font-size: 1.5rem;
+			}
+			p {
+				margin: 0;
+				color: #c6bef4;
+				line-height: 1.5;
+			}
+			.en {
+				font-size: 0.9rem;
+				color: #a095dc;
+			}
+			button {
+				margin-top: 12px;
+				padding: 12px 24px;
+				border: 3px solid #0b0720;
+				border-radius: 14px;
+				background: #ffcd38;
+				color: #3d1f00;
+				font: inherit;
+				font-weight: 800;
+				box-shadow: 0 4px 0 #0b0720;
+				cursor: pointer;
+			}
+			button:focus-visible {
+				outline: 3px solid #ffe066;
+				outline-offset: 3px;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<img src="/icons/icon.svg" alt="" />
+			<h1>Vous êtes hors ligne</h1>
+			<p>Reconnectez-vous à Internet pour continuer vos quêtes.</p>
+			<p class="en" lang="en">You're offline. Reconnect to the internet to keep questing.</p>
+			<button type="button" onclick="location.reload()">Réessayer · Retry</button>
+		</main>
+		<script>
+			// Come back on our own as soon as the connection does.
+			window.addEventListener('online', () => location.reload());
+		</script>
+	</body>
+</html>

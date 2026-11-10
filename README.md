@@ -42,6 +42,12 @@ Stack:
 - "Message the developer" inbox: users send bug reports / ideas from the
   pause menu; accounts listed in `DEVELOPER_EMAILS` see all of them and can
   copy the open ones as a ready-to-paste Claude Code prompt
+- Installable as an app (PWA): "Add to Home Screen" on iOS / "Install app"
+  on Android and desktop Chrome/Edge opens it full-screen with its own icon.
+  The service worker (`sk/src/service-worker.ts`) caches only the app shell
+  (JS, CSS, icons) — pages are never cached, so no household data lingers
+  on the device — and shows an offline screen when there's no connection.
+  Installing requires the site to be served over HTTPS (or `localhost`)
 
 ## Development
 

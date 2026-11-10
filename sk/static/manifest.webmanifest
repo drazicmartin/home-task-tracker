@@ -1,0 +1,24 @@
+{
+	"id": "/",
+	"name": "Home Task Tracker",
+	"short_name": "HTT",
+	"description": "Organisez les tâches de la maison en famille, en couple ou entre coloc, et transformez-les en jeu : chaque tâche accomplie rapporte des points.",
+	"lang": "fr",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#0b0720",
+	"theme_color": "#150f33",
+	"categories": ["productivity", "lifestyle"],
+	"icons": [
+		{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+		{ "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+		{ "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	],
+	"shortcuts": [
+		{ "name": "Quêtes", "url": "/board", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Classement", "url": "/leaderboard", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+	]
+}
