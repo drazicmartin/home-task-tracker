@@ -75,6 +75,10 @@ export type TaskWithScore = {
 	onDemand: boolean;
 	/** always 0 for on-demand quests */
 	todoPercentage: number;
+	/** the timer was last restarted by "skip this round" rather than a completion */
+	skipped: boolean;
+	/** raw tasks.skipped_at ('' when never skipped), so a skip can be undone */
+	skippedAt: string;
 };
 
 export async function getOrderedTasksWithScores(pb: PocketBase, householdId: string): Promise<TaskWithScore[]> {
@@ -94,7 +98,9 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 					frequency: task.frequency,
 					unit: task.unit,
 					onDemand: true,
-					todoPercentage: 0
+					todoPercentage: 0,
+					skipped: false,
+					skippedAt: task.skipped_at ?? ''
 				} satisfies TaskWithScore;
 			}
 
@@ -107,6 +113,9 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 			} catch {
 				// no completions yet — overdue-ness is measured from task creation
 			}
+			// "skip this round" restarts the timer without a completion
+			const skipped = Boolean(task.skipped_at) && Date.parse(task.skipped_at) > Date.parse(since);
+			if (skipped) since = task.skipped_at;
 
 			return {
 				id: task.id,
@@ -116,7 +125,9 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 				frequency: task.frequency,
 				unit: task.unit,
 				onDemand: false,
-				todoPercentage: getTodoPercentage(task.frequency, task.unit, since)
+				todoPercentage: getTodoPercentage(task.frequency, task.unit, since),
+				skipped,
+				skippedAt: task.skipped_at ?? ''
 			} satisfies TaskWithScore;
 		})
 	);

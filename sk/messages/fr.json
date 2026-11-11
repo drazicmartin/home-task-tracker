@@ -278,5 +278,11 @@
 	"settings_kind_hint": "Change le catalogue de quêtes proposé et le classement des quêtes. Les quêtes existantes sont conservées.",
 	"settings_kind_save": "Enregistrer le type",
 	"task_new_catalog_kinds": "Choisir un catalogue",
-	"task_new_catalog_this_household": "Ce foyer"
+	"task_new_catalog_this_household": "Ce foyer",
+	"board_skip": "Passer ce tour",
+	"board_skip_hint": "Pas besoin cette fois ? Aucun point, le compteur repart simplement à zéro.",
+	"board_skip_done": "« {name} » passée pour ce tour",
+	"board_skip_undo": "Annuler",
+	"board_skip_undone": "Passage annulé",
+	"board_skipped": "Passée"
 }

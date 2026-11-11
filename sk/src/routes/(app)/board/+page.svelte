@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { deserialize, enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, SearchX, Sparkles, Swords } from '@lucide/svelte';
+	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, SearchX, SkipForward, Sparkles, Swords } from '@lucide/svelte';
 	import QuestFilterBar from '$lib/QuestFilterBar.svelte';
 	import QuestTimeline from '$lib/QuestTimeline.svelte';
 	import { emptyFilters, filterQuests, isFiltering, type QuestFilters } from '$lib/questFilters';
@@ -24,6 +25,7 @@
 	let selectedUserIds = $state<string[]>([]);
 	let score = $state(0);
 	let submitting = $state(false);
+	let skipping = $state(false);
 	let burst = $state<{ id: number; points: string } | null>(null);
 	let burstTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -120,6 +122,44 @@
 			await update();
 		};
 	};
+
+	const submitSkip: SubmitFunction = () => {
+		skipping = true;
+		const taskName = selectedTask?.name ?? '';
+		return async ({ result, update }) => {
+			skipping = false;
+			if (result.type === 'success' && result.data?.skipped) {
+				const { taskId, previous } = result.data.skipped as { taskId: string; previous: string };
+				dialogOpen = false;
+				toast.success(m.board_skip_done({ name: taskName }), {
+					action: { label: m.board_skip_undo(), onClick: () => undoSkip(taskId, previous) }
+				});
+			} else {
+				const data = result.type === 'failure' ? (result.data as ActionData) : undefined;
+				toast.error(data?.message ?? m.generic_error());
+			}
+			await update();
+		};
+	};
+
+	async function undoSkip(taskId: string, previous: string) {
+		const body = new FormData();
+		body.set('task_id', taskId);
+		body.set('previous', previous);
+		try {
+			const response = await fetch('?/task_unskip', {
+				method: 'POST',
+				body,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+			const result = deserialize(await response.text());
+			if (result.type !== 'success') throw new Error('undo failed');
+			toast.success(m.board_skip_undone());
+		} catch {
+			toast.error(m.generic_error());
+		}
+		await invalidateAll();
+	}
 </script>
 
 <div class="flex flex-col gap-4">
@@ -186,6 +226,9 @@
 									<span class="chip chip-onDemand"><Hand class="size-3" strokeWidth={3} />{m.board_on_demand()}</span>
 								{:else}
 									<span class="chip chip-{status}">{statusLabels[status]()}</span>
+									{#if task.skipped}
+										<span class="chip chip-skipped"><SkipForward class="size-3" strokeWidth={3} />{m.board_skipped()}</span>
+									{/if}
 									<span class="text-xs font-extrabold text-night-300">
 										{m.board_recurrence({ frequency: task.frequency, unit: unitLabels[task.unit]?.() ?? task.unit })}
 									</span>
@@ -316,6 +359,22 @@
 						</button>
 					</div>
 				</form>
+
+				{#if !selectedTask.onDemand}
+					<form
+						method="post"
+						action="?/task_skip"
+						use:enhance={submitSkip}
+						class="mt-4 flex flex-col items-center gap-1 border-t-2 border-night-950/60 pt-3 text-center"
+					>
+						<input type="hidden" name="task_id" value={selectedTask.id} />
+						<button type="submit" disabled={skipping || submitting} class="skip-btn">
+							<SkipForward class="size-4" strokeWidth={3} />
+							{m.board_skip()}
+						</button>
+						<p class="text-xs font-bold text-night-300">{m.board_skip_hint()}</p>
+					</form>
+				{/if}
 			{/if}
 		</Dialog.Content>
 	</Dialog.Portal>
@@ -487,6 +546,30 @@
 		.quest-tools {
 			width: 2.6rem;
 		}
+	}
+
+	/* Secondary "skip this round" action under the completion form */
+	.skip-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-height: 2.75rem;
+		padding: 0.5rem 1rem;
+		border-radius: 999px;
+		font-weight: 900;
+		color: var(--color-night-200);
+		cursor: pointer;
+		transition:
+			color 0.15s,
+			background 0.15s;
+	}
+	.skip-btn:hover:not(:disabled) {
+		color: white;
+		background: rgb(11 7 32 / 0.5);
+	}
+	.skip-btn:disabled {
+		opacity: 0.5;
+		cursor: default;
 	}
 
 	/* Party picker tiles in the completion sheet */

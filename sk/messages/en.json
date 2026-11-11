@@ -278,5 +278,11 @@
 	"settings_kind_hint": "Changes the quest catalogue offered and how quests are categorised. Existing quests are kept.",
 	"settings_kind_save": "Save type",
 	"task_new_catalog_kinds": "Pick a catalogue",
-	"task_new_catalog_this_household": "This household"
+	"task_new_catalog_this_household": "This household",
+	"board_skip": "Skip this round",
+	"board_skip_hint": "Not needed this time? No points, the timer just restarts.",
+	"board_skip_done": "\"{name}\" skipped for this round",
+	"board_skip_undo": "Undo",
+	"board_skip_undone": "Skip undone",
+	"board_skipped": "Skipped"
 }

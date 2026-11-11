@@ -508,6 +508,10 @@
 		background: #6d28d9;
 		color: #ede9fe;
 	}
+	.chip-skipped {
+		background: var(--color-night-600);
+		color: var(--color-night-100);
+	}
 	.chip-gold {
 		background: var(--color-gold-500);
 		color: var(--color-gold-900);
