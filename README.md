@@ -19,6 +19,10 @@ Stack:
   a podium leaderboard
 - Task board with a recurrence-based "how overdue is this" visual, and a
   completion dialog that splits points across whoever did it together
+- "Skip this round" in the completion dialog for a recurring quest that
+  isn't needed this time (everyone ate out, nothing to take out...): no
+  points and no history entry, it just restarts the quest's timer
+  (`tasks.skipped_at`), with an undo in the confirmation toast
 - Per-household leaderboard (week / month / all-time) and activity history
 - Self-serve signup, household creation, and invite links to bring in the
   rest of the household

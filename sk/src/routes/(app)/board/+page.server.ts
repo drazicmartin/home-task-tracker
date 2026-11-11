@@ -65,5 +65,40 @@ export const actions: Actions = {
 			success: true,
 			message: `${memberNames.join(', ')} gagne ${splitScore} point${splitScore > 1 ? 's' : ''} !`
 		};
+	},
+
+	// "Skip this round": restarts the quest's timer without awarding points.
+	task_skip: async ({ request, locals }) => {
+		const form = await request.formData();
+		const taskId = String(form.get('task_id') ?? '');
+		if (!taskId) {
+			return fail(400, { success: false, message: 'Quête introuvable.' });
+		}
+
+		try {
+			const task = await locals.pb.collection('tasks').getOne(taskId, { fields: 'skipped_at' });
+			await locals.pb.collection('tasks').update(taskId, { skipped_at: new Date().toISOString() });
+			// the previous value lets the client offer an "undo"
+			return { success: true, skipped: { taskId, previous: String(task.skipped_at ?? '') } };
+		} catch {
+			return fail(400, { success: false, message: 'Impossible de passer la quête, réessayez.' });
+		}
+	},
+
+	// Undo of task_skip: puts back the skipped_at the quest had before.
+	task_unskip: async ({ request, locals }) => {
+		const form = await request.formData();
+		const taskId = String(form.get('task_id') ?? '');
+		const previous = String(form.get('previous') ?? '');
+		if (!taskId || (previous && Number.isNaN(Date.parse(previous)))) {
+			return fail(400, { success: false, message: 'Requête invalide.' });
+		}
+
+		try {
+			await locals.pb.collection('tasks').update(taskId, { skipped_at: previous });
+		} catch {
+			return fail(400, { success: false, message: "Impossible d'annuler, réessayez." });
+		}
+		return { success: true };
 	}
 };
