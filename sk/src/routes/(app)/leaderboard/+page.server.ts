@@ -1,4 +1,4 @@
-import { getHouseholdRecords, getUserTotals, type Window } from '$lib/scoring';
+import { getDailyPoints, getUserTotals, type Window } from '$lib/scoring';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
@@ -11,8 +11,7 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 		return { ranking: [], window };
 	}
 
-	const records = await getHouseholdRecords(locals.pb, activeHousehold.id, window);
-	const ranking = getUserTotals(records);
+	const ranking = getUserTotals(await getDailyPoints(locals.pb, activeHousehold.id, window));
 
 	return { ranking, window };
 };

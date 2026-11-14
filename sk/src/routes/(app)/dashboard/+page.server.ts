@@ -1,4 +1,4 @@
-import { getHouseholdRecords, getOrderedTasksWithScores, getUserTotals, questStatus, type Window } from '$lib/scoring';
+import { getDailyPoints, getOrderedTasksWithScores, getUserTotals, questStatus, type DailyPoints, type Window } from '$lib/scoring';
 import type { PageServerLoad } from './$types';
 
 type TrendPoint = { date: string; count: number };
@@ -6,13 +6,13 @@ type Health = { ok: number; dueSoon: number; overdue: number };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function bucketTrend(records: Awaited<ReturnType<typeof getHouseholdRecords>>, window: Window): TrendPoint[] {
+function bucketTrend(rows: DailyPoints[], window: Window): TrendPoint[] {
 	const bucketMs = window === 'all' ? 7 * DAY_MS : DAY_MS;
 	const buckets = new Map<number, number>();
-	for (const record of records) {
-		const ts = new Date(record.created).getTime();
+	for (const row of rows) {
+		const ts = Date.parse(`${row.day}T00:00:00Z`);
 		const bucketStart = Math.floor(ts / bucketMs) * bucketMs;
-		buckets.set(bucketStart, (buckets.get(bucketStart) ?? 0) + 1);
+		buckets.set(bucketStart, (buckets.get(bucketStart) ?? 0) + row.completions);
 	}
 	return [...buckets.entries()]
 		.sort(([a], [b]) => a - b)
@@ -38,12 +38,10 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 		return { ranking: [], trend: [], health: { ok: 0, dueSoon: 0, overdue: 0 }, window };
 	}
 
-	const records = await getHouseholdRecords(locals.pb, activeHousehold.id, window);
-	const ranking = getUserTotals(records);
-	const trend = bucketTrend(records, window);
+	const [daily, tasks] = await Promise.all([
+		getDailyPoints(locals.pb, activeHousehold.id, window),
+		getOrderedTasksWithScores(locals.pb, activeHousehold.id)
+	]);
 
-	const tasks = await getOrderedTasksWithScores(locals.pb, activeHousehold.id);
-	const health = bucketHealth(tasks);
-
-	return { ranking, trend, health, window };
+	return { ranking: getUserTotals(daily), trend: bucketTrend(daily, window), health: bucketHealth(tasks), window };
 };

@@ -91,9 +91,13 @@
 		{@render children()}
 	</main>
 
-	<!-- Bottom tab bar: where thumbs are on a phone, and still tidy on desktop -->
+	<!-- Bottom tab bar: where thumbs are on a phone, and still tidy on desktop.
+	     preload-code="eager": every tab's JS (the stats charts are the
+	     biggest chunk) is downloaded in the background as soon as the app
+	     loads, so switching tabs only waits for the page's data. -->
 	{#if data.activeHousehold}
 		<nav
+			data-sveltekit-preload-code="eager"
 			class="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-night-950/95 via-night-950/60 to-transparent px-3 pt-8 pb-[calc(0.6rem_+_env(safe-area-inset-bottom))]"
 		>
 			<div class="tabbar pointer-events-auto mx-auto max-w-md">

@@ -4,39 +4,64 @@ const DAY_SECONDS = 24 * 60 * 60;
 
 export type Window = 'week' | 'month' | 'all';
 
-/** ISO timestamp for the start of a window, or undefined for 'all' (no lower bound). */
-export function windowSince(window: Window): string | undefined {
+/**
+ * First UTC day ('YYYY-MM-DD') of a window, or undefined for 'all' (no lower
+ * bound). Windows are whole calendar days, today included: 'week' is today
+ * and the 6 days before it, 'month' today and the 29 before.
+ */
+export function windowSinceDay(window: Window): string | undefined {
 	if (window === 'all') return undefined;
 	const days = window === 'week' ? 7 : 30;
-	return new Date(Date.now() - days * DAY_SECONDS * 1000).toISOString();
+	return new Date(Date.now() - (days - 1) * DAY_SECONDS * 1000).toISOString().slice(0, 10);
 }
 
-/** Fetches the records for a household within a time window, with the completing user expanded. */
-export async function getHouseholdRecords(pb: PocketBase, householdId: string, window: Window) {
+export type DailyPoints = {
+	user: string;
+	/** UTC day, 'YYYY-MM-DD' */
+	day: string;
+	points: number;
+	completions: number;
+	expand?: { user?: { id: string; name?: string; email?: string } };
+};
+
+/**
+ * Points and completion counts per member per day for a household, within a
+ * window. Summed up by PocketBase (the daily_points view), so this stays a
+ * handful of rows no matter how much history the household has.
+ */
+export async function getDailyPoints(pb: PocketBase, householdId: string, window: Window): Promise<DailyPoints[]> {
 	const filterParams: Record<string, unknown> = { h: householdId };
 	let filter = 'household = {:h}';
-	const since = windowSince(window);
+	const since = windowSinceDay(window);
 	if (since) {
 		filterParams.since = since;
-		filter += ' && created >= {:since}';
+		filter += ' && day >= {:since}';
 	}
 
-	return pb.collection('records').getFullList({
+	const rows = await pb.collection('daily_points').getFullList({
 		filter: pb.filter(filter, filterParams),
+		fields: 'user,day,points,completions,expand.user.id,expand.user.name,expand.user.email',
 		expand: 'user'
 	});
+	return rows.map((row) => ({
+		user: row.user,
+		day: row.day,
+		points: Number(row.points) || 0,
+		completions: Number(row.completions) || 0,
+		expand: row.expand
+	}));
 }
 
 export type UserTotal = { id: string; name: string; total: number };
 
-/** Aggregates records into per-user point totals, ranked highest first. */
-export function getUserTotals(records: Awaited<ReturnType<typeof getHouseholdRecords>>): UserTotal[] {
+/** Aggregates daily points into per-user point totals, ranked highest first. */
+export function getUserTotals(rows: DailyPoints[]): UserTotal[] {
 	const totals = new Map<string, UserTotal>();
-	for (const record of records) {
-		const user = record.expand?.user;
-		if (!user) continue;
-		const entry = totals.get(user.id) ?? { id: user.id, name: user.name || user.email, total: 0 };
-		entry.total += record.score;
+	for (const row of rows) {
+		const user = row.expand?.user;
+		if (!user) continue; // no longer visible (left every shared household)
+		const entry = totals.get(user.id) ?? { id: user.id, name: user.name || user.email || '', total: 0 };
+		entry.total = Math.round((entry.total + row.points) * 100) / 100;
 		totals.set(user.id, entry);
 	}
 	return [...totals.values()].sort((a, b) => b.total - a.total);
@@ -82,41 +107,17 @@ export type TaskWithScore = {
 };
 
 export async function getOrderedTasksWithScores(pb: PocketBase, householdId: string): Promise<TaskWithScore[]> {
-	const tasks = await pb.collection('tasks').getFullList({
-		filter: pb.filter('household = {:h}', { h: householdId }),
-		sort: 'name'
-	});
+	const byHousehold = { filter: pb.filter('household = {:h}', { h: householdId }) };
+	// each quest's latest completion comes from the task_last_done view, in
+	// the same round-trip, instead of one request per quest
+	const [tasks, lastDone] = await Promise.all([
+		pb.collection('tasks').getFullList({ ...byHousehold, sort: 'name' }),
+		pb.collection('task_last_done').getFullList({ ...byHousehold, fields: 'id,last_done' })
+	]);
+	const lastDoneById = new Map(lastDone.map((row) => [row.id, String(row.last_done ?? '')]));
 
-	const withScores = await Promise.all(
-		tasks.map(async (task) => {
-			if (task.on_demand) {
-				return {
-					id: task.id,
-					name: task.name,
-					description: task.description,
-					score: task.score,
-					frequency: task.frequency,
-					unit: task.unit,
-					onDemand: true,
-					todoPercentage: 0,
-					skipped: false,
-					skippedAt: task.skipped_at ?? ''
-				} satisfies TaskWithScore;
-			}
-
-			let since = task.created;
-			try {
-				const lastRecord = await pb
-					.collection('records')
-					.getFirstListItem(pb.filter('task = {:t}', { t: task.id }), { sort: '-created' });
-				since = lastRecord.created;
-			} catch {
-				// no completions yet — overdue-ness is measured from task creation
-			}
-			// "skip this round" restarts the timer without a completion
-			const skipped = Boolean(task.skipped_at) && Date.parse(task.skipped_at) > Date.parse(since);
-			if (skipped) since = task.skipped_at;
-
+	const withScores = tasks.map((task): TaskWithScore => {
+		if (task.on_demand) {
 			return {
 				id: task.id,
 				name: task.name,
@@ -124,13 +125,32 @@ export async function getOrderedTasksWithScores(pb: PocketBase, householdId: str
 				score: task.score,
 				frequency: task.frequency,
 				unit: task.unit,
-				onDemand: false,
-				todoPercentage: getTodoPercentage(task.frequency, task.unit, since),
-				skipped,
+				onDemand: true,
+				todoPercentage: 0,
+				skipped: false,
 				skippedAt: task.skipped_at ?? ''
-			} satisfies TaskWithScore;
-		})
-	);
+			};
+		}
+
+		// no completions yet — overdue-ness is measured from task creation
+		let since = lastDoneById.get(task.id) || task.created;
+		// "skip this round" restarts the timer without a completion
+		const skipped = Boolean(task.skipped_at) && Date.parse(task.skipped_at) > Date.parse(since);
+		if (skipped) since = task.skipped_at;
+
+		return {
+			id: task.id,
+			name: task.name,
+			description: task.description,
+			score: task.score,
+			frequency: task.frequency,
+			unit: task.unit,
+			onDemand: false,
+			todoPercentage: getTodoPercentage(task.frequency, task.unit, since),
+			skipped,
+			skippedAt: task.skipped_at ?? ''
+		};
+	});
 
 	return withScores.sort(
 		(a, b) => Number(a.onDemand) - Number(b.onDemand) || b.todoPercentage - a.todoPercentage

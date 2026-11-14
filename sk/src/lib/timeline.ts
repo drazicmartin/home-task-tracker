@@ -21,25 +21,37 @@ export type TimelineEvent = {
 /** Completions closer than this, for the same quest, are one shared event (the split creates one record per person). */
 const MERGE_WINDOW_MS = 2 * 60 * 1000;
 
-/** Completions of the last TIMELINE_DAYS days, oldest first, one event per (shared) completion. */
-export async function getTimelineEvents(
-	pb: PocketBase,
-	householdId: string,
-	kind: HouseholdKind
-): Promise<TimelineEvent[]> {
+export type TimelineRecord = { id: string; task: string; user: string; score: number; created: string };
+
+/**
+ * The raw completions of the last TIMELINE_DAYS days, oldest first. Only the
+ * fields the timeline needs and no expand: quest and player names come from
+ * the lists the board loads anyway (see buildTimelineEvents), which is a lot
+ * cheaper than having PocketBase join them onto every record.
+ */
+export async function getTimelineRecords(pb: PocketBase, householdId: string): Promise<TimelineRecord[]> {
 	const since = new Date(Date.now() - TIMELINE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 	const records = await pb.collection('records').getFullList({
 		filter: pb.filter('household = {:h} && created >= {:since}', { h: householdId, since }),
 		sort: 'created',
-		expand: 'task,user'
+		fields: 'id,task,user,score,created'
 	});
+	return records.map((r) => ({ id: r.id, task: r.task, user: r.user, score: Number(r.score) || 0, created: r.created }));
+}
 
+/** One event per (shared) completion, oldest first. */
+export function buildTimelineEvents(
+	records: TimelineRecord[],
+	tasks: { id: string; name: string; description?: string }[],
+	userNames: Map<string, string>,
+	kind: HouseholdKind
+): TimelineEvent[] {
+	const tasksById = new Map(tasks.map((t) => [t.id, t]));
 	const events: TimelineEvent[] = [];
 	const lastByTask = new Map<string, TimelineEvent>();
 	for (const record of records) {
-		const task = record.expand?.task;
-		const user = record.expand?.user;
-		const userName = user ? user.name || user.email : '?';
+		const task = tasksById.get(record.task);
+		const userName = userNames.get(record.user) ?? '?';
 		const previous = lastByTask.get(record.task);
 		if (previous && new Date(record.created).getTime() - new Date(previous.at).getTime() < MERGE_WINDOW_MS) {
 			previous.users.push(userName);
