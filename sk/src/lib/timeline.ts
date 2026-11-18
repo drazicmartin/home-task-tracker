@@ -2,7 +2,22 @@ import type PocketBase from 'pocketbase';
 import type { HouseholdKind } from '$lib/householdKinds';
 import { classifyTask, type TaskCategory } from '$lib/questCategories';
 
-export const TIMELINE_DAYS = 30;
+/** Default length of the board timeline, for households that never picked one. */
+export const DEFAULT_TIMELINE_DAYS = 30;
+
+/** Lengths offered in the household settings. */
+export const TIMELINE_DAY_OPTIONS = [7, 14, 30, 60, 90] as const;
+
+export function isTimelineDays(value: number): boolean {
+	return (TIMELINE_DAY_OPTIONS as readonly number[]).includes(value);
+}
+
+/** The timeline length of a household record (households.timeline_days), falling back to the default. */
+export function householdTimelineDays(household: unknown): number {
+	const days =
+		household && typeof household === 'object' && 'timeline_days' in household ? Number(household.timeline_days) : NaN;
+	return Number.isInteger(days) && days > 0 ? days : DEFAULT_TIMELINE_DAYS;
+}
 
 export type TimelineEvent = {
 	id: string;
@@ -24,13 +39,13 @@ const MERGE_WINDOW_MS = 2 * 60 * 1000;
 export type TimelineRecord = { id: string; task: string; user: string; score: number; created: string };
 
 /**
- * The raw completions of the last TIMELINE_DAYS days, oldest first. Only the
+ * The raw completions of the last `days` days, oldest first. Only the
  * fields the timeline needs and no expand: quest and player names come from
  * the lists the board loads anyway (see buildTimelineEvents), which is a lot
  * cheaper than having PocketBase join them onto every record.
  */
-export async function getTimelineRecords(pb: PocketBase, householdId: string): Promise<TimelineRecord[]> {
-	const since = new Date(Date.now() - TIMELINE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+export async function getTimelineRecords(pb: PocketBase, householdId: string, days: number): Promise<TimelineRecord[]> {
+	const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 	const records = await pb.collection('records').getFullList({
 		filter: pb.filter('household = {:h} && created >= {:since}', { h: householdId, since }),
 		sort: 'created',

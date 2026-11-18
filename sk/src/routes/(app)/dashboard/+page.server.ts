@@ -1,4 +1,6 @@
 import { getDailyPoints, getOrderedTasksWithScores, getUserTotals, questStatus, type DailyPoints, type Window } from '$lib/scoring';
+import { buildCategoryStats, getUserTaskCounts, type CategoryStats, type UserTaskCount } from '$lib/categoryStats';
+import { householdKind } from '$lib/householdKinds';
 import type { PageServerLoad } from './$types';
 
 type TrendPoint = { date: string; count: number };
@@ -35,13 +37,19 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 		: 'week';
 
 	if (!activeHousehold) {
-		return { ranking: [], trend: [], health: { ok: 0, dueSoon: 0, overdue: 0 }, window };
+		const categories: CategoryStats = { members: [], categories: [] };
+		return { ranking: [], trend: [], health: { ok: 0, dueSoon: 0, overdue: 0 }, categories, window };
 	}
 
-	const [daily, tasks] = await Promise.all([
+	const [daily, tasks, taskCounts] = await Promise.all([
 		getDailyPoints(locals.pb, activeHousehold.id, window),
-		getOrderedTasksWithScores(locals.pb, activeHousehold.id)
+		getOrderedTasksWithScores(locals.pb, activeHousehold.id),
+		// a nice-to-have: never let it break the rest of the page
+		getUserTaskCounts(locals.pb, activeHousehold.id, window).catch((): UserTaskCount[] => [])
 	]);
 
-	return { ranking: getUserTotals(daily), trend: bucketTrend(daily, window), health: bucketHealth(tasks), window };
+	const ranking = getUserTotals(daily);
+	const categories = buildCategoryStats(taskCounts, tasks, ranking, householdKind(activeHousehold));
+
+	return { ranking, trend: bucketTrend(daily, window), health: bucketHealth(tasks), categories, window };
 };

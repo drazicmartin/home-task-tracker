@@ -173,7 +173,7 @@
 	</PageHeader>
 
 	{#if data.tasks.length > 0 || data.timeline.length > 0}
-		<QuestTimeline events={data.timeline} />
+		<QuestTimeline events={data.timeline} days={data.timelineDays} />
 	{/if}
 
 	{#if data.tasks.length === 0}
