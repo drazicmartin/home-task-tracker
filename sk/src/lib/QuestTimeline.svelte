@@ -4,11 +4,11 @@
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { CATEGORY_COLORS, TASK_CATEGORIES, type TaskCategory } from '$lib/questCategories';
 	import { CATEGORY_ICONS as ICONS, CATEGORY_LABELS as LABELS } from '$lib/kindUi';
-	import { TIMELINE_DAYS, type TimelineEvent } from '$lib/timeline';
+	import type { TimelineEvent } from '$lib/timeline';
 	import { formatPoints } from '$lib/game';
 	import Coin from '$lib/ui/Coin.svelte';
 
-	let { events }: { events: TimelineEvent[] } = $props();
+	let { events, days: dayCount }: { events: TimelineEvent[]; days: number } = $props();
 
 	/** Bubbles drawn per day before collapsing the rest into "+N". */
 	const MAX_PER_DAY = 3;
@@ -44,8 +44,8 @@
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 		const list: Day[] = [];
-		// TIMELINE_DAYS back from now can land on the morning of day -30: include it
-		for (let i = TIMELINE_DAYS; i >= 0; i--) {
+		// `dayCount` days back from now can land on the morning of day -N: include it
+		for (let i = dayCount; i >= 0; i--) {
 			const date = new Date(today);
 			date.setDate(today.getDate() - i);
 			list.push({
@@ -84,7 +84,7 @@
 
 <section class="panel p-3 sm:p-4">
 	<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-		<h2 class="panel-heading"><CalendarDays class="size-5" strokeWidth={3} />{m.timeline_title()}</h2>
+		<h2 class="panel-heading"><CalendarDays class="size-5" strokeWidth={3} />{m.timeline_title({ days: dayCount })}</h2>
 		{#if events.length > 0}
 			<span class="flex items-center gap-1 text-xs font-extrabold text-night-200">
 				{m.timeline_summary({ count: events.length })} · <Coin class="size-4" />{totalPoints}
@@ -96,7 +96,7 @@
 		<div class="track-placeholder" aria-hidden="true"></div>
 	{:else}
 		<div class="scroller" bind:this={scroller}>
-			<ol class="track" aria-label={m.timeline_title()}>
+			<ol class="track" aria-label={m.timeline_title({ days: dayCount })}>
 				{#each days as day, i (day.key)}
 					{@const hidden = day.events.length - MAX_PER_DAY}
 					<li class="day" data-today={day.isToday} data-weekend={day.isWeekend} data-selected={selectedDay === day.key}>
@@ -149,7 +149,7 @@
 		</div>
 
 		{#if events.length === 0}
-			<p class="mt-2 text-center text-sm font-bold text-night-300">{m.timeline_empty()}</p>
+			<p class="mt-2 text-center text-sm font-bold text-night-300">{m.timeline_empty({ days: dayCount })}</p>
 		{:else if selected}
 			<div class="panel-inset mt-2 flex flex-col gap-2 p-3">
 				<div class="flex items-center justify-between gap-2">

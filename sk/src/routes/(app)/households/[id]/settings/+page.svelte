@@ -2,11 +2,12 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
-	import { ChevronLeft, Copy, Crown, DoorOpen, Link, Plus, Settings, Skull, Trash, TriangleAlert, Users, X } from '@lucide/svelte';
+	import { CalendarDays, ChevronLeft, Copy, Crown, DoorOpen, Link, Plus, Settings, Skull, Trash, TriangleAlert, Users, X } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import KindPicker from '$lib/KindPicker.svelte';
 	import { householdKind, type HouseholdKind } from '$lib/householdKinds';
 	import { KIND_ICONS } from '$lib/kindUi';
+	import { householdTimelineDays, TIMELINE_DAY_OPTIONS } from '$lib/timeline';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -31,6 +32,12 @@
 		kind = savedKind;
 	});
 	const KindIcon = $derived(KIND_ICONS[kind]);
+
+	const savedTimelineDays = $derived(householdTimelineDays(data.household));
+	let timelineDays = $state(30);
+	$effect.pre(() => {
+		timelineDays = savedTimelineDays;
+	});
 
 	// who inherits the household if the owner leaves (oldest other member)
 	const successor = $derived(data.members.find((member) => member.user.id !== data.household.owner)?.user);
@@ -72,6 +79,30 @@
 			<KindPicker bind:value={kind} disabled={!data.isOwner} />
 			{#if data.isOwner}
 				<button type="submit" class="btn btn-gold btn-block" disabled={kind === savedKind}>{m.settings_kind_save()}</button>
+			{/if}
+		</form>
+	</section>
+
+	<section class="panel p-4 sm:p-5">
+		<h2 class="panel-heading"><CalendarDays class="size-5" strokeWidth={3} />{m.settings_timeline_heading()}</h2>
+		<p class="mt-1.5 text-sm font-bold text-night-200">{m.settings_timeline_hint()}</p>
+		{#if form?.action === 'changeTimelineDays' && form?.message}
+			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
+		{/if}
+		<form method="post" action="?/changeTimelineDays" use:enhance class="mt-3 flex flex-col gap-3">
+			<fieldset class="panel-inset grid grid-cols-5 gap-1 p-1" disabled={!data.isOwner}>
+				<legend class="sr-only">{m.settings_timeline_heading()}</legend>
+				{#each TIMELINE_DAY_OPTIONS as days (days)}
+					<label class="segment">
+						<input type="radio" name="timeline_days" value={days} bind:group={timelineDays} class="sr-only" />
+						{m.settings_timeline_days({ days })}
+					</label>
+				{/each}
+			</fieldset>
+			{#if data.isOwner}
+				<button type="submit" class="btn btn-gold btn-block" disabled={timelineDays === savedTimelineDays}>
+					{m.settings_timeline_save()}
+				</button>
 			{/if}
 		</form>
 	</section>
@@ -208,3 +239,42 @@
 		{/if}
 	</section>
 </div>
+
+<style>
+	/* same look as the leaderboard / stats period toggle */
+	.segment {
+		display: grid;
+		place-items: center;
+		min-height: 2.6rem;
+		padding: 0.25rem 0.25rem;
+		border-radius: 0.75rem;
+		border: 3px solid transparent;
+		color: var(--color-night-200);
+		font-size: 0.8rem;
+		font-weight: 900;
+		line-height: 1.1;
+		text-align: center;
+		cursor: pointer;
+		transition:
+			color 0.15s,
+			background 0.15s;
+	}
+	.segment:hover {
+		color: white;
+	}
+	.segment:has(input:focus-visible) {
+		outline: 3px solid var(--color-gold-300);
+		outline-offset: 1px;
+	}
+	.segment:has(input:checked) {
+		border-color: var(--color-night-950);
+		background: linear-gradient(180deg, var(--color-gold-300), var(--color-gold-500));
+		color: var(--color-gold-900);
+		box-shadow:
+			inset 0 2px 0 rgb(255 255 255 / 0.5),
+			inset 0 -3px 0 var(--color-gold-600);
+	}
+	fieldset:disabled .segment {
+		cursor: default;
+	}
+</style>

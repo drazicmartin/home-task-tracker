@@ -2,6 +2,7 @@ import { error, fail, redirect, type Cookies } from '@sveltejs/kit';
 import { nanoid } from 'nanoid';
 import { isHouseholdKind } from '$lib/householdKinds';
 import { getAdminClient } from '$lib/server/pbAdmin';
+import { isTimelineDays } from '$lib/timeline';
 import type { Actions, PageServerLoad } from './$types';
 
 const ACTIVE_HOUSEHOLD_COOKIE = 'active_household';
@@ -70,6 +71,20 @@ export const actions: Actions = {
 			await locals.pb.collection('households').update(params.id, { kind });
 		} catch {
 			return fail(403, { action: 'changeKind', message: 'Impossible de changer le type du foyer.' });
+		}
+	},
+
+	changeTimelineDays: async ({ request, params, locals }) => {
+		const days = Number((await request.formData()).get('timeline_days'));
+
+		if (!isTimelineDays(days)) {
+			return fail(400, { action: 'changeTimelineDays', message: 'Durée de frise invalide.' });
+		}
+
+		try {
+			await locals.pb.collection('households').update(params.id, { timeline_days: days });
+		} catch {
+			return fail(403, { action: 'changeTimelineDays', message: 'Impossible de changer la durée de la frise.' });
 		}
 	},
 
