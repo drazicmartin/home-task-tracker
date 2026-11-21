@@ -4,7 +4,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Check, Copy, Flame, Hand, Minus, Pencil, Plus, SearchX, SkipForward, Sparkles, Swords } from '@lucide/svelte';
+	import { Check, Flame, Hand, Minus, Pencil, Plus, SearchX, SkipForward, Sparkles, Swords } from '@lucide/svelte';
 	import QuestFilterBar from '$lib/QuestFilterBar.svelte';
 	import QuestTimeline from '$lib/QuestTimeline.svelte';
 	import { emptyFilters, filterQuests, isFiltering, type QuestFilters } from '$lib/questFilters';
@@ -123,9 +123,9 @@
 		};
 	};
 
-	const submitSkip: SubmitFunction = () => {
+	// Used both by the card's quick action and by the completion sheet.
+	const submitSkip = (taskName: string): SubmitFunction => () => {
 		skipping = true;
-		const taskName = selectedTask?.name ?? '';
 		return async ({ result, update }) => {
 			skipping = false;
 			if (result.type === 'success' && result.data?.skipped) {
@@ -254,13 +254,20 @@
 						<a href="/board/tasks/{task.id}/edit" class="quest-tool" aria-label={m.board_edit_aria({ name: task.name })}>
 							<Pencil class="size-4" strokeWidth={3} />
 						</a>
-						<a
-							href="/board/tasks/{task.id}/duplicate"
-							class="quest-tool"
-							aria-label={m.board_duplicate_aria({ name: task.name })}
-						>
-							<Copy class="size-4" strokeWidth={3} />
-						</a>
+						{#if !task.onDemand}
+							<form method="post" action="?/task_skip" use:enhance={submitSkip(task.name)} class="quest-tool-form">
+								<input type="hidden" name="task_id" value={task.id} />
+								<button
+									type="submit"
+									class="quest-tool"
+									disabled={skipping}
+									title={m.board_skip()}
+									aria-label={m.board_skip_aria({ name: task.name })}
+								>
+									<SkipForward class="size-4" strokeWidth={3} />
+								</button>
+							</form>
+						{/if}
 					</span>
 				</li>
 			{/each}
@@ -364,7 +371,7 @@
 					<form
 						method="post"
 						action="?/task_skip"
-						use:enhance={submitSkip}
+						use:enhance={submitSkip(selectedTask.name)}
 						class="mt-4 flex flex-col items-center gap-1 border-t-2 border-night-950/60 pt-3 text-center"
 					>
 						<input type="hidden" name="task_id" value={selectedTask.id} />
@@ -497,7 +504,7 @@
 		--fill: linear-gradient(90deg, hsl(var(--hue) 80% 42%), hsl(var(--hue) 90% 58%));
 	}
 
-	/* Right column: edit (top) and duplicate (bottom) stacked. */
+	/* Right column: edit (top) and skip this round (bottom) stacked. */
 	.quest-tools {
 		display: flex;
 		flex-direction: column;
@@ -517,12 +524,24 @@
 			color 0.15s,
 			background 0.15s;
 	}
-	.quest-tool + .quest-tool {
+	.quest-tools > * + * {
 		border-top: 3px solid var(--color-night-950);
 	}
-	.quest-tool:hover {
+	.quest-tool-form {
+		display: flex;
+		flex: 1;
+	}
+	.quest-tool-form .quest-tool {
+		width: 100%;
+		cursor: pointer;
+	}
+	.quest-tool:hover:not(:disabled) {
 		color: white;
 		background: rgb(11 7 32 / 0.5);
+	}
+	.quest-tool:disabled {
+		opacity: 0.5;
+		cursor: default;
 	}
 	.quest-tool:focus-visible {
 		outline-offset: -3px;
