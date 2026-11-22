@@ -199,6 +199,10 @@
 		display: none;
 	}
 	.kind-tab {
+		/* Positioning context for the `sr-only` (absolute) radio: without it the
+		   radio of an off-screen tab escapes the scroll row's clipping and
+		   widens the whole page on phones. */
+		position: relative;
 		display: inline-flex;
 		flex-shrink: 0;
 		align-items: center;
