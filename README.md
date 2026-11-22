@@ -41,6 +41,18 @@ Stack:
   type is shown first, the others are a tab away — with points on one
   consistent scale: about 1 point per 5 minutes of effort, +1/+2 for
   unpleasant ones (`sk/src/lib/questCatalog.ts`)
+- Meal planner ("Repas" tab), per household: a week view with what's
+  cooked each day for lunch and/or dinner, picked from the household's own
+  dish library with a text search (accent-insensitive) and difficulty /
+  max-time filters — or created on the spot from the search. Each dish has
+  a difficulty (easy / medium / hard), a preparation time and a photo of
+  the finished dish, taken with the phone camera or picked from the
+  gallery (shrunk in the browser before upload). The owner picks which
+  meals are planned on each weekday (default: dinner Monday to Friday,
+  lunch and dinner at the weekend). Photos are protected files in
+  PocketBase, streamed through the app's `/meal-photos` route to members
+  of the dish's household only (`sk/src/lib/meals.ts`,
+  `pb/pb_migrations/0018_create_meals_and_meal_plan.js`)
 - Leave a household (the owner hands ownership to the next member) or
   delete it entirely, from the household settings
 - "Message the developer" inbox: users send bug reports / ideas from the

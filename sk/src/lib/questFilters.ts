@@ -1,4 +1,5 @@
 import { questStatus, type TaskWithScore } from '$lib/scoring';
+import { matchesWords, searchWords } from '$lib/search';
 
 /** Status buckets the board can filter on; on-demand quests are their own bucket. */
 export type StatusFilter = 'overdue' | 'dueSoon' | 'ok' | 'onDemand';
@@ -40,14 +41,6 @@ export function isFiltering(filters: QuestFilters): boolean {
 	return filters.query.trim() !== '' || activeFilterCount(filters) > 0;
 }
 
-/** Lowercase, accent-free text so "menage" matches "Ménage". */
-function normalize(text: string): string {
-	return text
-		.normalize('NFD')
-		.replace(/[̀-ͯ]/g, '')
-		.toLowerCase();
-}
-
 function stripHtml(html: string): string {
 	return html.replace(/<[^>]*>/g, ' ');
 }
@@ -62,14 +55,11 @@ export function taskStatusFilter(task: TaskWithScore): StatusFilter {
  * means "no constraint".
  */
 export function filterQuests(tasks: TaskWithScore[], filters: QuestFilters): TaskWithScore[] {
-	const words = normalize(filters.query).split(/\s+/).filter(Boolean);
+	const words = searchWords(filters.query);
 	const pointRanges = POINTS_FILTERS.filter((p) => filters.points.includes(p.id));
 
 	const matches = tasks.filter((task) => {
-		if (words.length > 0) {
-			const haystack = normalize(`${task.name} ${stripHtml(task.description ?? '')}`);
-			if (!words.every((word) => haystack.includes(word))) return false;
-		}
+		if (!matchesWords(`${task.name} ${stripHtml(task.description ?? '')}`, words)) return false;
 		if (filters.status.length > 0 && !filters.status.includes(taskStatusFilter(task))) return false;
 		if (pointRanges.length > 0 && !pointRanges.some((r) => task.score >= r.min && task.score <= r.max)) {
 			return false;

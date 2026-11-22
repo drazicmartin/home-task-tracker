@@ -176,10 +176,11 @@ export const actions: Actions = {
 	},
 
 	/**
-	 * Permanently delete the household with all its quests, history, members
-	 * and invites. Owner only. History records are deleted explicitly before
-	 * the household: records.task is a required, non-cascading relation, so
-	 * letting the household cascade remove tasks first could be refused.
+	 * Permanently delete the household with all its quests, history, meal
+	 * plan, dishes, members and invites. Owner only. History records are
+	 * deleted explicitly before the household: records.task is a required,
+	 * non-cascading relation, so letting the household cascade remove tasks
+	 * first could be refused.
 	 */
 	deleteHousehold: async ({ request, params, locals, cookies }) => {
 		const form = await request.formData();
@@ -203,7 +204,7 @@ export const actions: Actions = {
 		try {
 			const admin = await getAdminClient();
 			const byHousehold = admin.filter('household = {:h}', { h: params.id });
-			for (const collection of ['records', 'tasks', 'invites', 'household_members']) {
+			for (const collection of ['records', 'tasks', 'meal_plan', 'meals', 'invites', 'household_members']) {
 				const rows = await admin.collection(collection).getFullList({ filter: byHousehold, fields: 'id' });
 				for (const row of rows) await admin.collection(collection).delete(row.id);
 			}

@@ -11,15 +11,15 @@
 	/**
 	 * One-tap navigation between the user's households: a scrollable row of
 	 * pills (kind icon + name) under the HUD, plus a "+" to create/join one.
-	 * Switching keeps you on the same screen (board, stats, leaderboard,
-	 * journal, settings) of the other household.
+	 * Switching keeps you on the same screen (board, meals, stats,
+	 * leaderboard, journal, settings) of the other household.
 	 */
 	let { households, activeId }: { households: Household[]; activeId: string } = $props();
 
 	let switching = $state<string | null>(null);
 	let strip = $state<HTMLElement>();
 
-	const SECTIONS = ['/board', '/dashboard', '/leaderboard', '/history'];
+	const SECTIONS = ['/board', '/meals', '/meals/library', '/dashboard', '/leaderboard', '/history'];
 
 	/** Where to land in the other household. */
 	function targetFor(householdId: string): string {

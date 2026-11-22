@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { Dialog } from 'bits-ui';
-	import { ChartColumn, LogOut, MessageSquare, Pause, Play, Plus, ScrollText, Settings, Swords, Trophy, User } from '@lucide/svelte';
+	import { ChartColumn, LogOut, MessageSquare, Pause, Play, Plus, ScrollText, Settings, Swords, Trophy, User, UtensilsCrossed } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { formatPoints, levelInfo } from '$lib/game';
 	import HouseholdSwitcher from '$lib/HouseholdSwitcher.svelte';
@@ -23,6 +23,7 @@
 
 	const tabs = $derived([
 		{ href: '/board', label: m.nav_tasks(), icon: Swords },
+		{ href: '/meals', label: m.nav_meals(), icon: UtensilsCrossed },
 		{ href: '/dashboard', label: m.nav_dashboard(), icon: ChartColumn },
 		{ href: '/leaderboard', label: m.nav_leaderboard(), icon: Trophy },
 		{ href: '/history', label: m.nav_history(), icon: ScrollText }
