@@ -457,6 +457,10 @@
 		font-size: 0.9rem;
 		cursor: pointer;
 	}
+	/* Search boxes have their own clear (×) button; hide the browser's one. */
+	input[type='search'].input::-webkit-search-cancel-button {
+		appearance: none;
+	}
 	/* Number steppers are replaced by our own -/+ buttons where it matters. */
 	input[type='number'].input {
 		font-variant-numeric: tabular-nums;
@@ -515,6 +519,19 @@
 	.chip-gold {
 		background: var(--color-gold-500);
 		color: var(--color-gold-900);
+	}
+	/* meal difficulty, same green / amber / red scale as quest status */
+	.chip-easy {
+		background: #15803d;
+		color: #dcfce7;
+	}
+	.chip-medium {
+		background: #b45309;
+		color: #fff3c4;
+	}
+	.chip-hard {
+		background: #be123c;
+		color: #ffe4e8;
 	}
 
 	/* Resource counter (coins in the HUD, rewards on cards) */
@@ -593,9 +610,11 @@
 	}
 
 	/* Bottom tab bar --------------------------------------------------- */
+	/* Five tabs: equal widths whenever they fit, and a tab whose label needs
+	 * more room ("Classement", "Leaderboard") takes it from the others
+	 * instead of being cut off (flex items never shrink below their label). */
 	.tabbar {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
+		display: flex;
 		gap: 0.25rem;
 		padding: 0.35rem;
 		border-radius: 1.5rem;
@@ -608,6 +627,7 @@
 	}
 	.tab {
 		display: flex;
+		flex: 1 1 0;
 		flex-direction: column;
 		align-items: center;
 		justify-content: flex-end;
@@ -641,10 +661,15 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	/* "Classement"/"Leaderboard" must still fit four-across on 320px phones */
+	/* "Classement"/"Leaderboard" must still fit five-across on 320px phones */
 	@media (max-width: 359px) {
+		.tabbar {
+			gap: 0.15rem;
+			padding: 0.3rem;
+		}
 		.tab {
-			font-size: 0.62rem;
+			padding-inline: 0.05rem;
+			font-size: 0.6rem;
 		}
 	}
 	.tab[aria-current='page'] {
