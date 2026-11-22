@@ -1,11 +1,14 @@
 import { fail } from '@sveltejs/kit';
+import { baseLocale, isLocale } from '$lib/paraglide/runtime';
+import { setLocaleCookie } from '$lib/server/locale';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	updateProfile: async ({ request, locals }) => {
+	updateProfile: async ({ request, locals, cookies }) => {
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
-		const locale = String(form.get('locale') ?? 'fr');
+		const requestedLocale = form.get('locale');
+		const locale = isLocale(requestedLocale) ? requestedLocale : baseLocale;
 		const avatar = form.get('avatar');
 
 		const data: Record<string, unknown> = { name, locale };
@@ -19,7 +22,11 @@ export const actions: Actions = {
 			return fail(400, { action: 'profile', message: 'Impossible de mettre à jour le profil.' });
 		}
 
-		return { action: 'profile', success: true };
+		// The hook already re-set the cookie for this request, but from the
+		// locale saved *before* this update; this one wins.
+		setLocaleCookie(cookies, locale);
+
+		return { action: 'profile', success: true, locale };
 	},
 
 	changePassword: async ({ request, locals }) => {

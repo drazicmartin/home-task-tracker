@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { setLocaleCookie } from '$lib/server/locale';
 import type { Actions, PageServerLoad } from './$types';
 
 function safeNext(next: string | null): string {
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals, url }) => {
+	default: async ({ request, locals, url, cookies }) => {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '').trim();
 		const password = String(form.get('password') ?? '');
@@ -29,6 +30,10 @@ export const actions: Actions = {
 		} catch {
 			return fail(400, { message: 'E-mail ou mot de passe incorrect.', email });
 		}
+
+		// Set the account's language right away, so the very first page after
+		// signing in on a new device already renders in it.
+		setLocaleCookie(cookies, locals.pb.authStore.record?.locale);
 
 		redirect(303, safeNext(url.searchParams.get('next')));
 	}

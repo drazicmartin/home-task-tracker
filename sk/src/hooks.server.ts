@@ -2,8 +2,9 @@ import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import PocketBase, { ClientResponseError } from 'pocketbase';
 import { env } from '$env/dynamic/private';
-import { cookieName as localeCookieName, getTextDirection, locales } from '$lib/paraglide/runtime';
+import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
+import { setLocaleCookie } from '$lib/server/locale';
 
 const PB_URL = env.PB_URL || 'http://127.0.0.1:8090';
 
@@ -46,13 +47,19 @@ const handlePocketbase: Handle = async ({ event, resolve }) => {
 
 	event.locals.user = event.locals.pb.authStore.record;
 
-	// keep the paraglide locale cookie in sync with the user's saved
-	// preference (from /account). Takes effect starting with the next
-	// request/navigation, since paraglideMiddleware has already resolved
-	// the locale for this one by the time locals.user is available here.
-	const userLocale = event.locals.user?.locale;
-	if (userLocale && locales.includes(userLocale) && event.cookies.get(localeCookieName) !== userLocale) {
-		event.cookies.set(localeCookieName, userLocale, { path: '/' });
+	// Keep the paraglide locale cookie in sync with the user's saved
+	// preference (from /account). For SSR it takes effect starting with the
+	// next request, since paraglideMiddleware has already resolved the
+	// locale for this one by the time locals.user is available here; the
+	// client runtime reads it as soon as this response lands.
+	//
+	// Re-set on every signed-in request, not only when the value differs:
+	// earlier versions of this hook wrote it httpOnly, and a browser holding
+	// such a copy has the right value but the client runtime can't read it
+	// (so it falls back to fr). That can't be detected server-side, and
+	// rewriting it replaces the flags too.
+	if (event.locals.user) {
+		setLocaleCookie(event.cookies, event.locals.user.locale);
 	}
 
 	const response = await resolve(event);
