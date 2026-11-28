@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { setLocaleCookie } from '$lib/server/locale';
 import type { RequestHandler } from './$types';
 
 /**
@@ -9,7 +10,7 @@ import type { RequestHandler } from './$types';
  * existing post-resolve cookie export turns it into the same httpOnly
  * session cookie a normal login/signup would set.
  */
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	const { token } = await request.json();
 
 	if (typeof token !== 'string' || !token) {
@@ -24,6 +25,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		locals.pb.authStore.clear();
 		return json({ success: false }, { status: 401 });
 	}
+
+	// Same as the password login: the account's language from the first page on.
+	setLocaleCookie(cookies, locals.pb.authStore.record?.locale);
 
 	return json({ success: true });
 };

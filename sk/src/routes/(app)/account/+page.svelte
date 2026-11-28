@@ -3,17 +3,35 @@
 	import { toast } from 'svelte-sonner';
 	import { Castle, Check, KeyRound, Plus, Settings, TriangleAlert, User, UserPen } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatPoints, levelInfo } from '$lib/game';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import Coin from '$lib/ui/Coin.svelte';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import XpBar from '$lib/ui/XpBar.svelte';
-	import type { ActionData, PageData } from './$types';
+	import type { ActionData, PageData, SubmitFunction } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const playerName = $derived(data.user?.name || data.user?.email || '');
 	const level = $derived(levelInfo(data.playerPoints).level);
+
+	// Message strings aren't reactive to the locale, so a language change
+	// only reaches the parts that happen to re-render — the nav and most of
+	// the page would stay in the old language. The action has already
+	// updated the locale cookie, so reload to render everything in the new one.
+	const submitProfile: SubmitFunction = () => {
+		const shownLocale = getLocale();
+		return async ({ result, update }) => {
+			const savedLocale =
+				result.type === 'success' && result.data && 'locale' in result.data ? result.data.locale : undefined;
+			if (savedLocale && savedLocale !== shownLocale) {
+				window.location.reload();
+				return;
+			}
+			await update();
+		};
+	};
 
 	$effect(() => {
 		if (form?.success && form.action === 'profile') toast.success(m.account_profile_saved());
@@ -52,7 +70,7 @@
 		{#if form?.action === 'profile' && form?.message}
 			<p class="alert-error mt-3" role="alert"><TriangleAlert class="size-4 shrink-0" strokeWidth={3} />{form.message}</p>
 		{/if}
-		<form method="post" action="?/updateProfile" enctype="multipart/form-data" use:enhance class="mt-4 flex flex-col gap-4">
+		<form method="post" action="?/updateProfile" enctype="multipart/form-data" use:enhance={submitProfile} class="mt-4 flex flex-col gap-4">
 			<label class="field">
 				<span class="field-label">{m.account_name()}</span>
 				<input name="name" type="text" required value={data.user?.name ?? ''} class="input" />
