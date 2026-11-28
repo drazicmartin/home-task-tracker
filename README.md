@@ -44,7 +44,9 @@ Stack:
 - Meal planner ("Repas" tab), per household: a week view with what's
   cooked each day for lunch and/or dinner, picked from the household's own
   dish library with a text search (accent-insensitive) and difficulty /
-  max-time filters — or created on the spot from the search. Each dish has
+  max-time filters — or created on the spot from the search. A planned dish
+  can be moved to another day of the week in one tap (swapping with the dish
+  already there, if any). Each dish has
   a difficulty (easy / medium / hard), a preparation time and a photo of
   the finished dish, taken with the phone camera or picked from the
   gallery (shrunk in the browser before upload). The owner picks which

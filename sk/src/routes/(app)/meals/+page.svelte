@@ -3,11 +3,12 @@
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
-	import { BookOpen, CalendarCheck, ChevronLeft, ChevronRight, Plus, Settings, UtensilsCrossed, X } from '@lucide/svelte';
+	import { BookOpen, CalendarCheck, CalendarSync, ChevronLeft, ChevronRight, Plus, Settings, UtensilsCrossed, X } from '@lucide/svelte';
+	import MealMoveSheet from '$lib/MealMoveSheet.svelte';
 	import MealPicker from '$lib/MealPicker.svelte';
 	import MealSlotSettings from '$lib/MealSlotSettings.svelte';
 	import { SLOT_ICONS, SLOT_LABELS, weekdayName } from '$lib/mealUi';
-	import { addDays, formatDay, weekDays, weekStart, type MealSlot } from '$lib/meals';
+	import { addDays, formatDay, weekDays, weekStart, type Meal, type MealSlot } from '$lib/meals';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import MealBadges from '$lib/ui/MealBadges.svelte';
@@ -22,6 +23,8 @@
 	let pickerOpen = $state(false);
 	let target = $state<{ day: string; slot: MealSlot } | null>(null);
 	let settingsOpen = $state(false);
+	let moveOpen = $state(false);
+	let moveSource = $state<{ day: string; slot: MealSlot; meal: Meal } | null>(null);
 	let clearing = $state<string | null>(null);
 
 	const mealsById = $derived(new Map(data.meals.map((meal) => [meal.id, meal])));
@@ -51,6 +54,11 @@
 	function openPicker(day: string, slot: MealSlot) {
 		target = { day, slot };
 		pickerOpen = true;
+	}
+
+	function openMove(day: string, slot: MealSlot, meal: Meal) {
+		moveSource = { day, slot, meal };
+		moveOpen = true;
 	}
 
 	// Opening the planner on this week: bring today's meals into view.
@@ -166,6 +174,16 @@
 												<MealBadges {meal} compact />
 											</span>
 										</button>
+										<button
+											type="button"
+											class="planned-action"
+											aria-haspopup="dialog"
+											aria-label={m.meals_move_aria({ name: meal.name, day: weekdayName(d.weekday, locale) })}
+											title={m.meals_move_title()}
+											onclick={() => openMove(d.day, slot, meal)}
+										>
+											<CalendarSync class="size-4" strokeWidth={3} />
+										</button>
 										<form
 											method="post"
 											action="?/clear"
@@ -215,6 +233,7 @@
 </div>
 
 <MealPicker bind:open={pickerOpen} {target} meals={data.meals} {currentMealId} />
+<MealMoveSheet bind:open={moveOpen} source={moveSource} {days} {planned} />
 <MealSlotSettings bind:open={settingsOpen} slots={data.slots} isOwner={data.isOwner} />
 
 <style>
@@ -302,6 +321,7 @@
 		background: rgb(11 7 32 / 0.35);
 	}
 	.planned-main:focus-visible,
+	.planned-action:focus-visible,
 	.planned-clear:focus-visible {
 		outline-offset: -3px;
 	}
@@ -317,6 +337,7 @@
 		color: white;
 		overflow-wrap: break-word;
 	}
+	.planned-action,
 	.planned-clear {
 		display: grid;
 		place-items: center;
@@ -327,6 +348,10 @@
 		transition:
 			color 0.15s,
 			background 0.15s;
+	}
+	.planned-action:hover {
+		color: white;
+		background: rgb(255 205 56 / 0.25);
 	}
 	.planned-clear:hover:not(:disabled) {
 		color: white;

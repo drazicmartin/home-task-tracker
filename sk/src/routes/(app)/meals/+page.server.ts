@@ -14,7 +14,7 @@ import {
 	type MealSlot,
 	type PlannedMeal
 } from '$lib/meals';
-import { setPlannedMeal } from '$lib/server/mealPlan';
+import { movePlannedMeal, setPlannedMeal } from '$lib/server/mealPlan';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
@@ -74,6 +74,34 @@ export const actions: Actions = {
 			return fail(400, { message: m.meals_error_assign() });
 		}
 		return { assigned: { day, slot, meal: mealId } };
+	},
+
+	/** Moves a planned dish to another day/slot; if a dish is already there, the two swap. */
+	move: async ({ request, locals, cookies }) => {
+		const householdId = cookies.get('active_household');
+		const form = await request.formData();
+		const fromDay = form.get('from_day');
+		const fromSlot = form.get('from_slot');
+		// "YYYY-MM-DD:slot", the value of the target button that was pressed
+		const [toDay, toSlot] = String(form.get('to') ?? '').split(':');
+
+		if (!householdId) return fail(400, { message: m.meals_error_no_household() });
+		if (!isDayString(fromDay) || !isMealSlot(fromSlot) || !isDayString(toDay) || !isMealSlot(toSlot)) {
+			return fail(400, { message: m.meals_error_assign() });
+		}
+		if (fromDay === toDay && fromSlot === toSlot) return { moved: null };
+
+		try {
+			const result = await movePlannedMeal(
+				locals.pb,
+				householdId,
+				{ day: fromDay, slot: fromSlot },
+				{ day: toDay, slot: toSlot }
+			);
+			return { moved: { day: toDay, slot: toSlot, ...result } };
+		} catch {
+			return fail(400, { message: m.meals_error_assign() });
+		}
 	},
 
 	/** Empties one day's lunch or dinner. */
